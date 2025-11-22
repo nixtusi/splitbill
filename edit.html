@@ -9,6 +9,14 @@
 <body data-page="edit">
   <main class="container">
     <div class="top-bar">
+      <div class="brand">
+        <a href="index.html" style="display: block;">
+          <img src="logocut.jpg" alt="Splitly" class="logo" />
+        </a>
+        <div>
+          <div class="brand-title">Splitly</div>
+        </div>
+      </div>
       <h1 id="editTitle">支出の編集</h1>
     </div>
     <section>
@@ -17,6 +25,11 @@
 
       <label>カテゴリ</label>
       <select id="editCategorySelect">
+        <option value="food">🍚 飲食</option>
+        <option value="transport">🚗 交通</option>
+        <option value="lodging">🏨 宿泊</option>
+        <option value="activity">🎡 アクティビティ</option>
+        <option value="other">💰 その他</option>
       </select>
 
       <label>支払った人</label>

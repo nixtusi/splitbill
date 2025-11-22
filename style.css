@@ -605,3 +605,16 @@ button.danger:active {
   transform: scale(1.1);
   accent-color: #3b82f6;
 }
+
+/* style.css の末尾に追加 */
+
+.brand a {
+  text-decoration: none;
+  border: none;
+  display: flex; /* 画像の配置崩れ防止 */
+  align-items: center;
+}
+.brand a img {
+  border: none;
+  outline: none;
+}

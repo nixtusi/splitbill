@@ -735,6 +735,26 @@ if (saveEditBtn) {
     const payerSelect = document.getElementById("editPayerSelect");
     const participantBox = document.getElementById("editParticipantCheckboxes");
 
+    // カテゴリ選択肢（編集画面用）
+    const CATEGORY_OPTIONS = [
+      { value: "food", label: "🍚 飲食" },
+      { value: "transport", label: "🚗 交通" },
+      { value: "lodging", label: "🏨 宿泊" },
+      { value: "activity", label: "🎡 アクティビティ" },
+      { value: "other", label: "💰 その他" },
+    ];
+
+    // カテゴリのセレクトボックスに option を流し込む
+    if (categorySelect) {
+      categorySelect.innerHTML = "";
+      CATEGORY_OPTIONS.forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.value;
+        opt.textContent = c.label;
+        categorySelect.appendChild(opt);
+      });
+    }
+
     // メンバー一覧取得
     (async () => {
       const memberSnap = await getDocs(collection(groupRef, "members"));
@@ -780,7 +800,8 @@ if (saveEditBtn) {
     saveEditBtn.onclick = async () => {
       const title = titleInput.value.trim() || "支出";
       const amount = Number(amountInput.value);
-      const category = categorySelect.value || "other";
+      const category =
+        categorySelect && categorySelect.value ? categorySelect.value : "other";
       const payerId = payerSelect.value;
 
       const participantIds = Array.from(
