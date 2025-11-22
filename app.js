@@ -278,6 +278,7 @@ if (startBtn) {
 
 const expenseListOnGroup = document.getElementById("expenseList");
 if (expenseListOnGroup) {
+  const loadingMsg = document.getElementById("loadingMsg");
   const groupId = getGroupIdFromQuery();
   const groupTitleEl = document.getElementById("groupTitle");
   const emptyMessageEl = document.getElementById("emptyMessage");
@@ -344,6 +345,10 @@ if (expenseListOnGroup) {
     // 支出一覧描画関数（検索対応）
     function renderExpenses(filterText, expenses, members) {
       expenseListOnGroup.innerHTML = "";
+
+      // 読み込み完了したらローディングを消す
+      if (loadingMsg) loadingMsg.style.display = "none";
+
       const text = (filterText || "").toLowerCase();
 
       const filtered = expenses.filter((e) => {
@@ -810,12 +815,18 @@ if (saveEditBtn) {
     // 削除ボタンのロジック
     if (deleteExpenseBtn) {
       deleteExpenseBtn.onclick = async () => {
-        const title = titleInput.value.trim() || "この支出";
-        if (!confirm(`${title} を削除しますか？`)) return;
-
-        await deleteDoc(expenseRef);
-        alert("支出を削除しました");
-        location.href = `group.html?g=${groupId}`;
+        // 確認ダイアログ
+        if (!confirm("本当にこの支出を削除しますか？\n（取り消せません）")) {
+          return;
+        }
+        try {
+          await deleteDoc(expenseRef);
+          alert("支出を削除しました");
+          location.href = `group.html?g=${groupId}`;
+        } catch (err) {
+          console.error(err);
+          alert("削除に失敗しました");
+        }
       };
     }
   }

@@ -12,7 +12,7 @@
       <div class="brand">
         <img src="splitly-logo.png" alt="Splitly" class="logo" />
         <div>
-          <div class="brand-title">Splitly</div>
+          <!-- <div class="brand-title">Splitly</div> -->
           <div class="brand-caption" id="groupTitle">支出を追加</div>
         </div>
       </div>
@@ -20,7 +20,7 @@
 
     <section>
       <input id="expenseTitle" type="text" placeholder="タイトル（例：夕食）" />
-      <input id="expenseAmount" type="number" placeholder="金額（円）" />
+      <input id="expenseAmount" type="number" inputmode="numeric" placeholder="金額（円）" />
 
       <label>カテゴリ</label>
       <select id="categorySelect">
@@ -34,7 +34,7 @@
       <label>支払った人</label>
       <select id="payerSelect"></select>
 
-      <p>誰の分？</p>
+      <label style="margin-top: 20px;">誰の分？</label>
       <div id="participantCheckboxes"></div>
 
       <button id="addExpenseBtn" class="full">支出を追加する</button>
