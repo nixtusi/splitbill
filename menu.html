@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Splitly - メニュー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+
+    <div class="brand" style="margin-bottom: 20px;">
+      <img src="logocut.jpg" class="logo" style="height: 36px;">
+      <div>
+        <div class="brand-title">Splitly</div>
+        <div class="brand-caption">メニュー</div>
+      </div>
+    </div>
+
+    <section>
+      <h2>グループ作成</h2>
+      <button class="full" onclick="location.href='create.html'">＋ 新しいグループを作る</button>
+    </section>
+
+    <section>
+      <h2>最近のグループ</h2>
+      <ul id="groupHistoryList"></ul>
+      <p class="muted" id="noHistoryMsg">まだ履歴はありません。</p>
+    </section>
+
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

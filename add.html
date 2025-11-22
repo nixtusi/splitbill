@@ -9,25 +9,18 @@
 <body data-page="add">
   <main class="container">
     <div class="top-bar">
-      <h1 id="groupTitle">支出を追加</h1>
+      <div class="brand">
+        <img src="splitly-logo.png" alt="Splitly" class="logo" />
+        <div>
+          <div class="brand-title">Splitly</div>
+          <div class="brand-caption" id="groupTitle">支出を追加</div>
+        </div>
+      </div>
     </div>
 
-    <!-- メンバー追加 -->
     <section>
-      <h2>メンバー</h2>
-      <div class="inline-form">
-        <input id="newMemberName" type="text" placeholder="例：ゆうだい">
-        <button id="addMemberBtn">追加</button>
-      </div>
-      <ul id="memberList"></ul>
-    </section>
-
-    <!-- 支出追加 -->
-    <section>
-      <h2>支出を登録</h2>
-
-      <input id="expenseTitle" type="text" placeholder="例：焼肉">
-      <input id="expenseAmount" type="number" placeholder="金額（円）">
+      <input id="expenseTitle" type="text" placeholder="タイトル（例：夕食）" />
+      <input id="expenseAmount" type="number" placeholder="金額（円）" />
 
       <label>カテゴリ</label>
       <select id="categorySelect">
@@ -41,16 +34,14 @@
       <label>支払った人</label>
       <select id="payerSelect"></select>
 
-      <div>
-        <p>誰の分を払った？</p>
-        <div id="participantCheckboxes"></div>
-      </div>
+      <p>誰の分？</p>
+      <div id="participantCheckboxes"></div>
 
-      <button id="addExpenseBtn" class="full">支出を追加</button>
+      <button id="addExpenseBtn" class="full">支出を追加する</button>
     </section>
 
     <div class="bottom-actions single">
-      <button id="backToGroupBtn" class="secondary full">← 支出一覧に戻る</button>
+      <button id="backToGroupBtn" class="secondary full">一覧に戻る</button>
     </div>
   </main>
 

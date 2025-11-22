@@ -11,7 +11,7 @@ html, body {
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  background: #0f172a;
+  background: #f3f4f6; /* スマホ枠の外側は薄いグレー */
   color: #111827;
   display: flex;
   justify-content: center;
@@ -23,7 +23,7 @@ body {
   width: 100%;
   max-width: 420px;
   min-height: 100vh;
-  background: linear-gradient(180deg, #0f172a 0%, #020617 40%, #020617 100%);
+  background: #ffffff; /* スマホ枠は白 */
   padding: 12px 12px 80px;
 }
 
@@ -282,4 +282,235 @@ ul {
 .group-history-item a {
   color: #e5e7eb;
   text-decoration: none;
+}
+/* 全体レイアウト */
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    sans-serif;
+  background: #f3f4f6; /* スマホ枠の外側の背景（薄いグレー） */
+  color: #111111;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.container {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100vh;
+  padding: 16px 16px 96px;
+  box-sizing: border-box;
+}
+
+/* ヘッダー（ロゴ＋タイトル） */
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand img.logo {
+  height: 28px;
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.brand-caption {
+  font-size: 12px;
+  color: #777;
+}
+
+/* セクション */
+
+section {
+  margin-top: 16px;
+}
+
+section h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+/* 入力・フォーム */
+
+input,
+select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid #e3e3e3;
+  font-size: 14px;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #a6f28f;
+  box-shadow: 0 0 0 2px rgba(166, 242, 143, 0.4);
+}
+
+/* ボタン */
+
+button {
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #a6f28f;
+  color: #000;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+    background 0.12s ease-out;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  background: #9de87f;
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* サブボタン */
+
+button.secondary {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+button.secondary:hover {
+  background: #e5e7eb;
+}
+
+/* フル幅ボタン */
+
+button.full {
+  width: 100%;
+}
+
+/* ボトムアクションバー */
+
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 420px;
+  width: 100%;
+  padding: 8px 16px 16px;
+  box-sizing: border-box;
+  background: linear-gradient(to top, #ffffff, rgba(255, 255, 255, 0.9), transparent);
+  display: flex;
+  gap: 8px;
+}
+
+.bottom-actions.single {
+  justify-content: center;
+}
+
+/* 支出カード */
+
+#expenseList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.expense-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  margin-bottom: 10px;
+}
+
+.expense-icon {
+  font-size: 26px;
+}
+
+.expense-main {
+  flex: 1;
+}
+
+.expense-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.expense-amount {
+  font-weight: 700;
+}
+
+.expense-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.expense-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+button.small {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+/* メンバーリスト */
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+/* 履歴 */
+
+.group-history-item {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 6px;
+}
+
+.group-history-item a {
+  color: #111827;
+  text-decoration: none;
+}
+
+/* テキスト */
+
+.muted {
+  color: #9ca3af;
+  font-size: 13px;
 }

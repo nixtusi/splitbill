@@ -2,40 +2,44 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>SplitBill - グループ作成</title>
+  <title>Splitly - 割り勘をもっとスマートに。</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="index">
+<body>
   <main class="container">
-    <h1>SplitBill</h1>
+
+    <div class="brand" style="margin-bottom: 20px;">
+      <img src="logocut.jpg" class="logo" style="height: 36px;">
+      <div>
+        <div class="brand-title">Splitly</div>
+        <div class="brand-caption">割り勘を、もっとスマートに。</div>
+      </div>
+    </div>
 
     <section>
-      <h2>SplitBillとは？</h2>
+      <h2>📝 どんなアプリ？</h2>
       <p class="muted">
-        割り勘の記録・精算をリンク共有だけで完結できる、シンプルな割り勘メモアプリです。
-        アカウント登録は不要。旅行や飲み会ごとにグループを作って、誰がいくら立て替えたかを記録できます。
+        Splitly は、旅行・飲み会・イベントなどの割り勘を誰でも簡単に精算できるアプリです。
+        アカウント登録は不要、リンクを共有するだけでみんなが同じグループに参加できます。
       </p>
-      <button id="startBtn" class="full">はじめる</button>
     </section>
 
-    <section id="createSection" style="margin-top: 20px;">
-      <h2>新しいグループを作る</h2>
-      <label>
-        グループ名
-        <input id="groupName" type="text" placeholder="例：沖縄旅行メンバー">
-      </label>
-      <button id="createGroupBtn" class="full">グループを作る</button>
-
-      <p id="result"></p>
-    </section>
     <section>
-      <h2>最近使ったグループ</h2>
-      <ul id="groupHistoryList"></ul>
+      <h2>⚡ 主な機能</h2>
+      <ul class="muted">
+        <li>・支出をリアルタイム共有</li>
+        <li>・カテゴリ別のアイコンで見やすい表示</li>
+        <li>・精算を自動計算</li>
+        <li>・メンバー追加・削除</li>
+        <li>・グループURLを共有して誰でも参加</li>
+      </ul>
     </section>
-  </main>
 
-  <script type="module" src="firebase-config.js"></script>
-  <script type="module" src="app.js"></script>
+    <div style="margin-top: 40px; text-align: center;">
+      <button class="full" onclick="location.href='menu.html'">はじめる</button>
+    </div>
+
+  </main>
 </body>
 </html>

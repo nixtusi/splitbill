@@ -1,0 +1,41 @@
+<!-- members.html -->
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Splitly - 参加者管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <div class="top-bar">
+        <div class="brand">
+          <img src="splitly-logo.png" alt="Splitly" class="logo" />
+          <div>
+            <div class="brand-title">Splitly</div>
+            <div class="brand-caption" id="groupTitle">参加者管理</div>
+          </div>
+        </div>
+      </div>
+
+      <section>
+        <h2>参加者</h2>
+        <ul id="memberList"></ul>
+      </section>
+
+      <section>
+        <h2>参加者を追加</h2>
+        <input id="newMemberName" type="text" placeholder="名前" />
+        <button id="addMemberBtn" class="full">追加する</button>
+      </section>
+
+      <div class="bottom-actions single">
+        <button id="backToGroupBtn" class="secondary full">← 戻る</button>
+      </div>
+    </main>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
