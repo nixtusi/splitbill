@@ -362,6 +362,10 @@ if (expenseListOnGroup) {
       for (const e of filtered) {
         const li = document.createElement("li");
         li.className = "expense-card";
+        li.style.cursor = "pointer"; // li全体がクリック可能であることを示す
+        li.onclick = () => {
+          location.href = `edit.html?g=${groupId}&e=${e.id}`;
+        };
 
         const { icon, label } = getCategoryInfo(e.category);
 
@@ -394,31 +398,9 @@ if (expenseListOnGroup) {
         mainDiv.appendChild(titleRow);
         mainDiv.appendChild(meta);
 
-        // 右側の編集・削除ボタン
-        const actions = document.createElement("div");
-        actions.className = "expense-actions";
-
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "編集";
-        editBtn.className = "secondary small";
-        editBtn.onclick = () => {
-          location.href = `edit.html?g=${groupId}&e=${e.id}`;
-        };
-
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "削除";
-        delBtn.className = "secondary small";
-        delBtn.onclick = async () => {
-          if (!confirm(`${e.title} を削除しますか？`)) return;
-          await deleteDoc(doc(expensesRef, e.id));
-        };
-
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
 
         li.appendChild(iconSpan);
         li.appendChild(mainDiv);
-        li.appendChild(actions);
 
         expenseListOnGroup.appendChild(li);
       }
@@ -728,6 +710,7 @@ if (saveEditBtn) {
   const groupId = params.get("g");
   const expenseId = params.get("e");
   const backBtn = document.getElementById("backToGroupBtn");
+  const deleteExpenseBtn = document.getElementById("deleteExpenseBtn");
 
   if (backBtn && groupId) {
     backBtn.onclick = () => {
@@ -823,6 +806,18 @@ if (saveEditBtn) {
       alert("更新しました！");
       location.href = `group.html?g=${groupId}`;
     };
+
+    // 削除ボタンのロジック
+    if (deleteExpenseBtn) {
+      deleteExpenseBtn.onclick = async () => {
+        const title = titleInput.value.trim() || "この支出";
+        if (!confirm(`${title} を削除しますか？`)) return;
+
+        await deleteDoc(expenseRef);
+        alert("支出を削除しました");
+        location.href = `group.html?g=${groupId}`;
+      };
+    }
   }
 }
 
