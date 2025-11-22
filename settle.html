@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>SplitBill - 精算</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="settle">
+  <main class="container">
+    <div class="top-bar">
+      <h1 id="groupTitle">精算</h1>
+    </div>
+
+    <section>
+      <h2>各自の残高</h2>
+      <div id="balances"></div>
+    </section>
+
+    <section>
+      <h2>支払うべき組み合わせ</h2>
+      <div id="transfers"></div>
+    </section>
+
+    <section>
+      <button id="copyForLineBtn" class="full">LINE用テキストをコピー</button>
+    </section>
+
+    <div class="bottom-actions single">
+      <button id="backToGroupBtn" class="secondary full">← 支出一覧に戻る</button>
+    </div>
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

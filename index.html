@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>SplitBill - グループ作成</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="index">
+  <main class="container">
+    <h1>SplitBill</h1>
+
+    <section>
+      <h2>SplitBillとは？</h2>
+      <p class="muted">
+        割り勘の記録・精算をリンク共有だけで完結できる、シンプルな割り勘メモアプリです。
+        アカウント登録は不要。旅行や飲み会ごとにグループを作って、誰がいくら立て替えたかを記録できます。
+      </p>
+      <button id="startBtn" class="full">はじめる</button>
+    </section>
+
+    <section id="createSection" style="margin-top: 20px;">
+      <h2>新しいグループを作る</h2>
+      <label>
+        グループ名
+        <input id="groupName" type="text" placeholder="例：沖縄旅行メンバー">
+      </label>
+      <button id="createGroupBtn" class="full">グループを作る</button>
+
+      <p id="result"></p>
+    </section>
+    <section>
+      <h2>最近使ったグループ</h2>
+      <ul id="groupHistoryList"></ul>
+    </section>
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

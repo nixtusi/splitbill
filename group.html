@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>SplitBill - グループ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="group">
+  <main class="container">
+    <div class="top-bar">
+      <h1 id="groupTitle">SplitBill</h1>
+      <button id="copyLinkBtn" class="secondary small">リンクコピー</button>
+    </div>
+
+    <section>
+        <h2>支出一覧</h2>
+        <input id="searchInput" type="text" placeholder="支出名で検索" />
+        <ul id="expenseList"></ul>
+        <p id="emptyMessage" class="muted">まだ支出がありません。右下の「＋支出を追加」から登録してね。</p>
+    </section>
+
+    <div class="bottom-actions">
+      <button id="goAddBtn" class="full">＋ 支出を追加</button>
+      <button id="goSettleBtn" class="secondary full">精算する</button>
+    </div>
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

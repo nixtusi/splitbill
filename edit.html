@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>SplitBill - 支出の編集</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="edit">
+  <main class="container">
+    <div class="top-bar">
+      <h1 id="editTitle">支出の編集</h1>
+    </div>
+    <section>
+      <input id="editExpenseTitle" type="text" placeholder="タイトル">
+      <input id="editExpenseAmount" type="number" placeholder="金額（円）">
+
+      <label>カテゴリ</label>
+      <select id="editCategorySelect">
+        <option value="food">🍚 飲食</option>
+        <option value="transport">🚗 交通</option>
+        <option value="lodging">🏨 宿泊</option>
+        <option value="activity">🎡 アクティビティ</option>
+        <option value="other">💰 その他</option>
+      </select>
+
+      <label>支払った人</label>
+      <select id="editPayerSelect"></select>
+
+      <div>
+        <p>誰の分？</p>
+        <div id="editParticipantCheckboxes"></div>
+      </div>
+
+      <button id="saveEditBtn" class="full">更新する</button>
+    </section>
+
+    <div class="bottom-actions single">
+      <button id="backToGroupBtn" class="secondary full">← 戻る</button>
+    </div>
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
