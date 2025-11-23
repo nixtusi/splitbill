@@ -13,6 +13,17 @@ import {
   updateDoc        // ← 後で編集にも使うのでついでに
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+function showToast(msg) {
+  const div = document.createElement('div');
+  div.className = 'toast show';
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => {
+    div.classList.remove('show');
+    setTimeout(() => div.remove(), 300);
+  }, 3000);
+}
+
 /* 共通：ランダムID生成 */
 function generateId(length = 12) {
   const chars =
@@ -97,7 +108,7 @@ if (createFinalBtn) {
     addTempMemberBtn.onclick = () => {
       const name = newMemberNameInput.value.trim();
       if (!name) {
-        alert("名前を入力してね");
+        showToast("名前を入力してね");
         return;
       }
       tempMembers.push(name);
@@ -195,7 +206,7 @@ if (createdGroupUrlEl) {
         if (navigator.clipboard && window.isSecureContext) {
           try {
             await navigator.clipboard.writeText(groupUrl);
-            alert("グループのリンクをコピーしました 🎉");
+            showToast("グループのリンクをコピーしました 🎉");
           } catch (e) {
             window.prompt("このリンクをコピーしてください：", groupUrl);
           }
@@ -333,7 +344,7 @@ if (expenseListOnGroup) {
       if (navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(url);
-          alert("グループのリンクをコピーしました 🎉");
+            showToast("グループのリンクをコピーしました 🎉");
         } catch (e) {
           // 失敗したときは手動コピーのフォールバック
           window.prompt("このリンクをコピーしてください：", url);
@@ -419,7 +430,7 @@ if (expenseListOnGroup) {
 
         const amountSpan = document.createElement("span");
         amountSpan.className = "expense-amount";
-        amountSpan.textContent = `${e.amount}円`;
+        amountSpan.textContent = `${Number(e.amount).toLocaleString()}円`;
 
         titleRow.appendChild(titleSpan);
         titleRow.appendChild(amountSpan);
@@ -546,12 +557,21 @@ if (addExpenseBtn) {
       const payerId = payerSelect.value;
       const category = categorySelect.value || "other";
 
-      if (!amount || amount <= 0) {
-        alert("金額を入力してね");
+      // 金額のバリデーション
+      if (!amount || isNaN(amount)) {
+        showToast("金額を入力してね");
+        return;
+      }
+      if (amount <= 0) {
+        showToast("金額は1円以上にしてね");
+        return;
+      }
+      if (amount < 0 || amount > 10000000) {
+        showToast("金額は1円以上1,000万円以下で入力してね");
         return;
       }
       if (!payerId) {
-        alert("支払った人を選んでね");
+        showToast("支払った人を選んでね");
         return;
       }
 
@@ -560,7 +580,7 @@ if (addExpenseBtn) {
       ).map((cb) => cb.value);
 
       if (participantIds.length === 0) {
-        alert("少なくとも1人は選んでね");
+        showToast("少なくとも1人は選んでね");
         return;
       }
 
@@ -575,7 +595,7 @@ if (addExpenseBtn) {
 
       titleInput.value = "";
       amountInput.value = "";
-      alert("支出を追加しました！");
+      showToast("支出を追加しました！");
     });
   }
 }
@@ -727,10 +747,10 @@ if (copyForLineBtn) {
         if (navigator.clipboard) {
           navigator.clipboard
             .writeText(text)
-            .then(() => alert("コピーしました！LINEに貼り付けてね"))
-            .catch(() => alert("コピーに失敗しました"));
+            .then(() => showToast("コピーしました！LINEに貼り付けてね"))
+            .catch(() => showToast("コピーに失敗しました"));
         } else {
-          alert("クリップボードコピーに非対応のブラウザです");
+          showToast("クリップボードコピーに非対応のブラウザです");
         }
       };
     });
@@ -754,7 +774,7 @@ if (saveEditBtn) {
   }
 
   if (!groupId || !expenseId) {
-    alert("URL が不正です");
+    showToast("URL が不正です");
   } else {
     const groupRef = doc(db, "groups", groupId);
     const expenseRef = doc(groupRef, "expenses", expenseId);
@@ -811,7 +831,7 @@ if (saveEditBtn) {
       // 既存支出読み込み
       const snap = await getDoc(expenseRef);
       if (!snap.exists()) {
-        alert("支出が見つかりません");
+        showToast("支出が見つかりません");
         return;
       }
       const data = snap.data();
@@ -838,16 +858,25 @@ if (saveEditBtn) {
         participantBox.querySelectorAll("input[type=checkbox]:checked")
       ).map((cb) => cb.value);
 
-      if (!amount || amount <= 0) {
-        alert("金額を入力してね");
+      // 金額のバリデーション
+      if (!amount || isNaN(amount)) {
+        showToast("金額を入力してね");
+        return;
+      }
+      if (amount <= 0) {
+        showToast("金額は1円以上にしてね");
+        return;
+      }
+      if (amount < 0 || amount > 10000000) {
+        showToast("金額は1円以上1,000万円以下で入力してね");
         return;
       }
       if (!payerId) {
-        alert("支払った人を選んでね");
+        showToast("支払った人を選んでね");
         return;
       }
       if (participantIds.length === 0) {
-        alert("少なくとも1人は選んでね");
+        showToast("少なくとも1人は選んでね");
         return;
       }
 
@@ -859,7 +888,7 @@ if (saveEditBtn) {
         participantIds,
       });
 
-      alert("更新しました！");
+      showToast("更新しました！");
       location.href = `group.html?g=${groupId}`;
     };
 
@@ -872,11 +901,11 @@ if (saveEditBtn) {
         }
         try {
           await deleteDoc(expenseRef);
-          alert("支出を削除しました");
+          showToast("支出を削除しました");
           location.href = `group.html?g=${groupId}`;
         } catch (err) {
           console.error(err);
-          alert("削除に失敗しました");
+          showToast("削除に失敗しました");
         }
       };
     }
@@ -917,7 +946,7 @@ if (addMemberBtn) {
     addMemberBtn.addEventListener("click", async () => {
       const name = newMemberNameInput.value.trim();
       if (!name) {
-        alert("名前を入力してね");
+        showToast("名前を入力してね");
         return;
       }
       const memberId = generateId();
