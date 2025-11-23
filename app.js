@@ -192,7 +192,7 @@ if (createdGroupUrlEl) {
         if (navigator.share) {
           try {
             await navigator.share({
-              title: "Splitly",
+              title: "Team Pay",
               text: "割り勘グループに参加してね！",
               url: groupUrl,
             });
@@ -329,7 +329,7 @@ if (expenseListOnGroup) {
       if (navigator.share) {
         try {
           await navigator.share({
-            title: "Splitly",
+            title: "Team Pay",
             text: "割り勘グループに参加してね！",
             url,
           });
