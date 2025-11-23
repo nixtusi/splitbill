@@ -177,6 +177,21 @@ if (createdGroupUrlEl) {
 
     if (copyUrlBtn) {
       copyUrlBtn.onclick = async () => {
+        // まずは Web Share API を試す
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "Splitly",
+              text: "割り勘グループに参加してね！",
+              url: groupUrl,
+            });
+            return; // 共有シートを開けたらここで終了
+          } catch (err) {
+            // ユーザーキャンセルなどは無視して、下のコピー処理へ
+          }
+        }
+
+        // Web Share が使えない or エラー時はクリップボードコピーにフォールバック
         if (navigator.clipboard && window.isSecureContext) {
           try {
             await navigator.clipboard.writeText(groupUrl);
@@ -298,6 +313,21 @@ if (expenseListOnGroup) {
   if (groupId && copyLinkBtn) {
     copyLinkBtn.onclick = async () => {
       const url = window.location.href;
+
+      // まずは Web Share API（共有シート）が使えるか試す
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "Splitly",
+            text: "割り勘グループに参加してね！",
+            url,
+          });
+          // シェア完了 or ユーザーキャンセル時は特に何もしない
+          return;
+        } catch (err) {
+          // ユーザーキャンセルやエラー時は下のクリップボード処理へフォールバック
+        }
+      }
 
       // クリップボード API が使える場合（HTTPS or localhost など）
       if (navigator.clipboard && window.isSecureContext) {
