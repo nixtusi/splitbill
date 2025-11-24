@@ -366,3 +366,9 @@ button.danger:active {
   z-index: 1000;
 }
 .toast.show { opacity: 1; }
+
+.brand-link {
+  text-decoration: none; 
+  color: inherit;        /* 元の文字色を維持 */
+  cursor: pointer;
+}
