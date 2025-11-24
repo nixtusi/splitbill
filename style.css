@@ -53,7 +53,8 @@ body {
 .brand-title {
   font-size: 20px;
   font-weight: 700;
-  color: #a6f28f;
+  /* color: #a6f28f; */
+  color: #228b22;
 }
 
 .brand-caption {
@@ -107,7 +108,8 @@ button {
   padding: 10px 16px;
   font-size: 14px;
   font-weight: 600;
-  background: #a6f28f;
+  /* background: #a6f28f; */
+  background: #228b22;
   color: #000;
   transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
     background 0.12s ease-out;
