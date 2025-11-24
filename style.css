@@ -54,7 +54,7 @@ body {
   font-size: 20px;
   font-weight: 700;
   /* color: #a6f28f; */
-  color: #4ade80;
+  color: #6ACC4B;
 }
 
 .brand-caption {
@@ -109,7 +109,7 @@ button {
   font-size: 14px;
   font-weight: 600;
   /* background: #a6f28f; */
-  background: #4ade80;
+  background: #6ACC4B;
   color: #000;
   transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
     background 0.12s ease-out;
