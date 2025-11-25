@@ -676,15 +676,14 @@ if (settingsBody) {
         const data = snap.data();
         const currencies = data.currencies || { JPY: 1 };
 
-        // JPY以外の通貨だけ抽出（例：["USD", "EUR"]）
+        // JPY以外の通貨だけ抽出
         const codes = Object.keys(currencies).filter(c => c !== "JPY");
-
         if (codes.length === 0) {
           return showToast("JPY以外の通貨が登録されていません", "error");
         }
 
-        // Frankfurter API に問い合わせ
-        const url = `https://api.frankfurter.dev/latest?from=JPY&to=${codes.join(",")}`;
+        // Frankfurter API（v1）を叩く
+        const url = `https://api.frankfurter.dev/v1/latest?base=JPY&symbols=${codes.join(",")}`;
         const res = await fetch(url);
 
         if (!res.ok) {
@@ -696,21 +695,18 @@ if (settingsBody) {
           throw new Error("レート情報が取得できませんでした");
         }
 
-        // JSON例 → { rates: { USD: 0.0067, EUR: 0.0061 } }
-        // Team Pay の方式（1通貨 = 何円）に変換
+        // Team Pay の内部形式（1通貨＝何円）に変換
         codes.forEach(code => {
-          const perJPY = json.rates[code];
-          if (perJPY) {
-            currencies[code] = 1 / perJPY; // 1通貨あたりの円価格
+          const jpyToCode = json.rates[code]; // 例: 1 JPY = 0.0067 USD
+          if (jpyToCode) {
+            currencies[code] = 1 / jpyToCode; // → 1 USD = 149.25 円
           }
         });
 
         // Firestore 更新
         await updateDoc(groupRef, { currencies });
 
-        // UI 更新
         renderCurrencies(currencies);
-
         showToast("為替レートを更新しました", "success");
 
       } catch (err) {
