@@ -550,34 +550,37 @@ if (settleBody) {
 }
 
 // ■ settings.html (設定画面)
-// ■ settings.html (設定画面)
 const settingsBody = document.body.dataset.page === "settings";
 if (settingsBody) {
   const gid = getGroupId();
   const groupRef = doc(db, "groups", gid);
 
-  // キャンセルボタン: 保存せずに戻る
+  // キャンセル
   document.getElementById("cancelSettingsBtn").onclick = () => location.href = `group.html?g=${gid}`;
 
-  // ローカルで編集内容を保持するための変数
   let currentCurrencies = {}; 
+  let expensesCache = []; // 削除チェック用に支出データを保持
 
   // 初期ロード
-  getDoc(groupRef).then(snap => {
-    const data = snap.data();
+  Promise.all([
+    getDoc(groupRef),
+    getDocs(collection(groupRef, "expenses"))
+  ]).then(([gSnap, eSnap]) => {
+    const data = gSnap.data();
     document.getElementById("groupNameInput").value = data.name;
     currentCurrencies = data.currencies || { "JPY": 1 };
+    
+    eSnap.forEach(doc => expensesCache.push(doc.data())); // 支出データをキャッシュ
+
     renderCurrencies(currentCurrencies);
   });
 
-  // 保存ボタン: グループ名と通貨設定をまとめてFirestoreに保存
+  // 保存
   document.getElementById("saveSettingsBtn").onclick = async () => {
     const newName = document.getElementById("groupNameInput").value.trim();
     if (!newName) return showToast("グループ名を入力してください", "error");
 
-    // 通貨レートの入力値を反映
     const updatedCurrencies = {};
-    // リストにある通貨コードを走査
     Object.keys(currentCurrencies).forEach(code => {
         if (code === 'JPY') {
             updatedCurrencies[code] = 1;
@@ -610,7 +613,7 @@ if (settingsBody) {
     copyToClipboard(url, "招待リンクをコピーしました");
   };
 
-  // --- メンバー管理 (ここは即時反映のままにします) ---
+  // --- メンバー管理 ---
   const memList = document.getElementById("settingsMemberList");
   function loadMembers() {
     memList.innerHTML = "";
@@ -637,7 +640,13 @@ if (settingsBody) {
   };
 
   window.deleteMember = async (mid, name) => {
-    if (confirm(`${name}さんを削除しますか？\n※この人が支払った記録も残りますが、精算計算に影響が出る可能性があります。`)) {
+    // 使用状況チェック
+    const isUsed = expensesCache.some(e => e.payerId === mid || (e.participantIds || []).includes(mid));
+    if (isUsed) {
+      return showToast(`${name}さんは既に支払いに関わっているため削除できません`, "error");
+    }
+
+    if (confirm(`${name}さんを削除しますか？`)) {
       await deleteDoc(doc(groupRef, "members", mid));
       loadMembers();
       showToast("削除しました");
@@ -663,7 +672,6 @@ if (settingsBody) {
       if (code === 'JPY') {
         li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
       } else {
-        // 削除ボタンに変更
         li.innerHTML = `
           <span style="font-weight:bold;">${code}</span>
           <div style="display:flex; gap:4px; align-items:center;">
@@ -676,34 +684,26 @@ if (settingsBody) {
     });
   }
 
-  // 通貨削除 (ローカル変数のみ更新し、画面再描画)
   window.removeCurrency = (code) => {
+    // 使用状況チェック (保存済みの支出で使われているか)
+    const isUsed = expensesCache.some(e => e.currency === code);
+    if (isUsed) {
+        return showToast(`${code}は既に支出で使用されているため削除できません`, "error");
+    }
+
     if (confirm(`${code} を削除しますか？\n(保存ボタンを押すまで確定しません)`)) {
       delete currentCurrencies[code];
       renderCurrencies(currentCurrencies);
     }
   };
 
-  // 通貨追加画面へ
   document.getElementById("goAddCurrencyBtn").onclick = () => {
-    // 現在の状態を保存してから行きたいが、シンプルに遷移させる
-    // (本格的にやるならlocalStorage等で一時保存が必要だが、今回は省略)
     location.href = `currency_select.html?g=${gid}`;
   };
 
-  // レート自動更新
+  // (自動更新ロジックは変更なし)
   document.getElementById("autoRateBtn").onclick = async () => {
-    // ... (前回のAPI処理と同じ) ...
-    // 取得できたレートで currentCurrencies を更新して再描画
     try {
-        // (中略: API呼び出しロジック)
-        // 成功したら:
-        // currentCurrencies[code] = newRate;
-        // renderCurrencies(currentCurrencies);
-        // showToast("レートを更新しました (保存ボタンで確定)");
-        
-        // ※ 既存のAPIロジックをここに移動し、最後の updateDoc を削除して
-        // currentCurrencies 更新 → renderCurrencies に変える
         const codes = Object.keys(currentCurrencies).filter(c => c !== "JPY");
         if (codes.length === 0) return showToast("JPY以外がありません", "error");
         
