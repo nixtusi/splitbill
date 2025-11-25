@@ -243,7 +243,7 @@ if (expenseListEl) {
         const cat = getCategoryInfo(e.category);
         const payer = membersMap[e.payerId] || "不明";
         const amountStr = e.currency && e.currency !== 'JPY' 
-          ? `${e.originalAmount}${e.currency} (${Math.round(e.amount).toLocaleString()}円)`
+          ? `${e.originalAmount.toLocaleString()}${e.currency}` // ★カンマ区切りを追加
           : `${Math.round(e.amount).toLocaleString()}円`;
 
         li.innerHTML = `
