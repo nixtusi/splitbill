@@ -624,7 +624,7 @@ if (settingsBody) {
       const li = document.createElement("li");
       li.className = "member-card";
       if (code === 'JPY') {
-        li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
+        // li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
       } else {
         // レート表示を調整
         li.innerHTML = `
