@@ -12,19 +12,16 @@
     <div class="hero">
       <div class="hero-logo">Team Pay</div>
       <p class="hero-copy">面倒な割り勘計算、<br>もう終わりにしませんか？</p>
-      <button class="full" id="startBtn" style="box-shadow: 0 8px 20px rgba(106, 204, 75, 0.4); transform: scale(1.05);">
-        今すぐはじめる（無料）
-      </button>
+      
+      <div style="padding: 0 24px;">
+        <button class="full" id="startBtn" style="box-shadow: 0 8px 20px rgba(106, 204, 75, 0.4); max-width: 320px; margin: 0 auto; display: block;">
+          今すぐはじめる（無料）
+        </button>
+      </div>
     </div>
 
     <section>
-      <h2>📂 最近使ったグループ</h2>
-      <ul id="groupHistoryList"></ul>
-      <p id="noHistoryMsg" class="muted" style="text-align:center;">履歴はありません</p>
-    </section>
-
-    <section>
-      <h2>🚀 Team Payの特徴</h2>
+      <h2>Team Payの特徴</h2>
       <div style="background:#f3f4f6; padding:16px; border-radius:16px;">
         <ul style="list-style: none; padding:0; margin:0;">
           <li style="margin-bottom:10px;">✅ <b>ログイン不要</b>：URL共有だけで参加</li>
@@ -33,6 +30,12 @@
           <li>✅ <b>精算楽々</b>：最小の送金回数を自動計算</li>
         </ul>
       </div>
+    </section>
+
+    <section>
+      <h2>最近使ったグループ</h2>
+      <ul id="groupHistoryList" class="card-list"></ul>
+      <p id="noHistoryMsg" class="muted" style="text-align:center;">履歴はありません</p>
     </section>
 
     <footer>

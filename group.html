@@ -17,8 +17,10 @@
 
   <main class="container">
     <section>
+      <input type="text" id="searchInput" class="search-input" placeholder="支出を検索">
+
       <div id="loadingMsg" class="loading-spinner" style="text-align:center; padding:20px;">読み込み中...</div>
-      <ul id="expenseList"></ul>
+      <ul id="expenseList" class="card-list"></ul>
       <p id="emptyMessage" class="muted" style="display:none; text-align:center; margin-top:40px;">
         まだ支出がありません。<br>下のボタンから追加してね。
       </p>

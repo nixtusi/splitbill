@@ -27,10 +27,12 @@
 
     <section>
       <h2>👥 参加者設定</h2>
-      <ul id="settingsMemberList" style="margin-bottom:10px;"></ul>
+      <p class="muted" style="margin-bottom:10px;">名前をタップして編集できます。</p>
+      <ul id="settingsMemberList" class="card-list" style="margin-bottom:16px;"></ul>
+      
       <label class="muted">新規追加</label>
       <div class="input-group">
-        <input type="text" id="addMemberInput" placeholder="名前">
+        <input type="text" id="addMemberInput" placeholder="名前を入力">
         <button id="addNewMemberBtn">追加</button>
       </div>
     </section>
@@ -38,12 +40,12 @@
     <section>
       <h2>🌎 通貨設定</h2>
       <p class="muted">外貨と日本円(JPY)のレートを設定します。</p>
-      <ul id="currencyList" style="margin-bottom:10px;"></ul>
+      <ul id="currencyList" class="card-list" style="margin-bottom:16px;"></ul>
       
       <label class="muted">通貨を追加</label>
       <div style="display:flex; gap:8px;">
         <input type="text" id="newCurrencyCode" placeholder="USD" style="flex:1; text-transform:uppercase;">
-        <input type="number" id="newCurrencyRate" placeholder="レート (例: 150)" style="flex:2;">
+        <input type="number" id="newCurrencyRate" placeholder="レート" style="flex:2;">
       </div>
       <button id="addCurrencyBtn" class="secondary full">通貨を追加する</button>
     </section>

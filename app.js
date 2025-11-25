@@ -8,7 +8,6 @@ import {
 
 /* --- 共通ユーティリティ --- */
 
-// トースト表示 (type: 'success' | 'error')
 function showToast(msg, type = 'success') {
   const div = document.createElement('div');
   div.className = `toast ${type} show`;
@@ -20,7 +19,6 @@ function showToast(msg, type = 'success') {
   }, 3000);
 }
 
-// ランダムID生成
 function generateId(length = 12) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let s = "";
@@ -30,7 +28,6 @@ function generateId(length = 12) {
   return s;
 }
 
-// URLパラメータ取得
 function getGroupId() {
   return new URLSearchParams(location.search).get("g");
 }
@@ -38,7 +35,6 @@ function getExpenseId() {
   return new URLSearchParams(location.search).get("e");
 }
 
-// クリップボードコピー (シンプル版)
 async function copyToClipboard(text, successMsg = "コピーしました！") {
   if (navigator.clipboard && window.isSecureContext) {
     try {
@@ -52,7 +48,6 @@ async function copyToClipboard(text, successMsg = "コピーしました！") {
   }
 }
 
-// カテゴリ定義
 const CATEGORIES = [
   { value: "food", label: "飲食", icon: "🍚" },
   { value: "alcohol", label: "飲み会", icon: "🍻" },
@@ -69,14 +64,12 @@ function getCategoryInfo(val) {
 
 /* --- ページ別ロジック --- */
 
-// ■ index.html (LP)
+// ■ index.html (トップ)
 const startBtn = document.getElementById("startBtn");
 if (startBtn) {
-  startBtn.onclick = () => {
-    location.href = "create.html";
-  };
+  startBtn.onclick = () => location.href = "create.html";
   
-  // 履歴表示
+  // 履歴表示（カードスタイル）
   const historyList = document.getElementById("groupHistoryList");
   if (historyList) {
     let history = [];
@@ -88,8 +81,18 @@ if (startBtn) {
       historyList.innerHTML = "";
       history.forEach(h => {
         const li = document.createElement("li");
-        li.className = "group-history-item";
-        li.innerHTML = `<a href="group.html?g=${h.id}"><b>${h.name}</b></a>`;
+        li.className = "card-item clickable";
+        li.onclick = () => location.href = `group.html?g=${h.id}`;
+        
+        li.innerHTML = `
+          <div class="card-icon">📂</div>
+          <div class="card-main">
+            <div class="card-top">
+              <span>${h.name}</span>
+            </div>
+            <div class="card-meta">ID: ${h.id}</div>
+          </div>
+        `;
         historyList.appendChild(li);
       });
       document.getElementById("noHistoryMsg").style.display = "none";
@@ -109,8 +112,12 @@ if (createFinalBtn) {
     tempUl.innerHTML = "";
     tempMembers.forEach((name, i) => {
       const li = document.createElement("li");
-      li.className = "member-item";
-      li.innerHTML = `<span>${name}</span><button class="secondary small" data-idx="${i}">削除</button>`;
+      li.className = "member-card"; // カードスタイル流用
+      li.style.padding = "8px 12px";
+      li.innerHTML = `
+        <span>${name}</span>
+        <button class="secondary small" data-idx="${i}">削除</button>
+      `;
       tempUl.appendChild(li);
     });
     tempUl.querySelectorAll("button").forEach(b => {
@@ -138,11 +145,10 @@ if (createFinalBtn) {
     const gid = generateId();
     const groupRef = doc(db, "groups", gid);
     
-    // デフォルト通貨設定 (JPY, レート1)
     await setDoc(groupRef, {
       name: groupName,
       createdAt: serverTimestamp(),
-      currencies: { "JPY": 1 } // ベース通貨
+      currencies: { "JPY": 1 }
     });
 
     const memRef = collection(groupRef, "members");
@@ -150,11 +156,11 @@ if (createFinalBtn) {
       await setDoc(doc(memRef, generateId()), { name, createdAt: serverTimestamp() });
     }
 
-    // 履歴保存
     try {
       const hist = JSON.parse(localStorage.getItem("teampay_history") || "[]");
-      hist.unshift({ id: gid, name: groupName });
-      localStorage.setItem("teampay_history", JSON.stringify(hist.slice(0, 10)));
+      // 重複排除
+      const newHist = [{ id: gid, name: groupName }, ...hist.filter(h => h.id !== gid)];
+      localStorage.setItem("teampay_history", JSON.stringify(newHist.slice(0, 10)));
     } catch (_) {}
 
     location.href = `created.html?g=${gid}`;
@@ -172,80 +178,97 @@ if (createdUrlEl) {
 }
 
 // ■ group.html (ダッシュボード)
-const groupTitleEl = document.getElementById("groupTitle");
-if (groupTitleEl && document.getElementById("expenseList")) {
+const expenseListEl = document.getElementById("expenseList");
+if (expenseListEl) {
   const gid = getGroupId();
   if (!gid) location.href = "index.html";
 
-  // 設定ボタンへ遷移
+  const groupTitleEl = document.getElementById("groupTitle");
+  const searchInput = document.getElementById("searchInput");
+  let allExpenses = [];
+  let membersMap = {};
+
+  // 遷移ボタン
   document.getElementById("settingsBtn").onclick = () => location.href = `settings.html?g=${gid}`;
   document.getElementById("goAddBtn").onclick = () => location.href = `add.html?g=${gid}`;
   document.getElementById("goSettleBtn").onclick = () => location.href = `settle.html?g=${gid}`;
 
-  // グループ情報購読
+  // グループ名
   onSnapshot(doc(db, "groups", gid), (docSnap) => {
-    if (docSnap.exists()) {
-      groupTitleEl.textContent = docSnap.data().name;
-    }
+    if (docSnap.exists()) groupTitleEl.textContent = docSnap.data().name;
   });
 
-  // メンバー情報取得
-  let membersMap = {};
-  getDocs(collection(doc(db, "groups", gid), "members")).then(snap => {
+  // メンバー
+  onSnapshot(collection(doc(db, "groups", gid), "members"), (snap) => {
+    membersMap = {};
     snap.forEach(d => membersMap[d.id] = d.data().name);
+    renderExpenses(); // メンバー名更新のため再描画
   });
 
-  // 支出一覧購読
+  // 支出一覧
   onSnapshot(collection(doc(db, "groups", gid), "expenses"), (snap) => {
-    const list = document.getElementById("expenseList");
-    const expenses = [];
-    snap.forEach(d => expenses.push({ id: d.id, ...d.data() }));
-
-    // 日付順、作成日順にソート
-    expenses.sort((a, b) => {
+    allExpenses = [];
+    snap.forEach(d => allExpenses.push({ id: d.id, ...d.data() }));
+    
+    // 日付順、作成順
+    allExpenses.sort((a, b) => {
       if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
       return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
     });
 
-    list.innerHTML = "";
-    if (expenses.length === 0) {
+    renderExpenses();
+    document.getElementById("loadingMsg").style.display = "none";
+  });
+
+  // 描画関数 (検索対応)
+  function renderExpenses() {
+    const filterText = (searchInput.value || "").toLowerCase();
+    const filtered = allExpenses.filter(e => 
+      (e.title || "").toLowerCase().includes(filterText)
+    );
+
+    expenseListEl.innerHTML = "";
+    
+    if (filtered.length === 0) {
       document.getElementById("emptyMessage").style.display = "block";
     } else {
       document.getElementById("emptyMessage").style.display = "none";
-      expenses.forEach(e => {
+      filtered.forEach(e => {
         const li = document.createElement("li");
-        li.className = "expense-card";
+        li.className = "card-item clickable";
         li.onclick = () => location.href = `edit.html?g=${gid}&e=${e.id}`;
         
         const cat = getCategoryInfo(e.category);
         const payer = membersMap[e.payerId] || "不明";
-        
-        // 通貨表示 (ベース通貨換算があればそちらを表示、なければ元の通貨)
-        const displayAmount = e.currency && e.currency !== 'JPY' 
+        const amountStr = e.currency && e.currency !== 'JPY' 
           ? `${e.originalAmount}${e.currency} (${Math.round(e.amount).toLocaleString()}円)`
           : `${Math.round(e.amount).toLocaleString()}円`;
 
         li.innerHTML = `
-          <div class="expense-icon">${cat.icon}</div>
-          <div class="expense-main">
-            <div class="expense-top">
+          <div class="card-icon">${cat.icon}</div>
+          <div class="card-main">
+            <div class="card-top">
               <span>${e.title}</span>
-              <span>${displayAmount}</span>
+              <span>${amountStr}</span>
             </div>
-            <div class="expense-meta">
+            <div class="card-meta">
               <span class="expense-date">${e.date || ""}</span>
-              ${payer}が支払い • ${e.participantIds.length}人分
+              ${payer} が立替 • ${e.participantIds.length}人
             </div>
           </div>
         `;
-        list.appendChild(li);
+        expenseListEl.appendChild(li);
       });
     }
-    document.getElementById("loadingMsg").style.display = "none";
-  });
+  }
+
+  // 検索イベント
+  if (searchInput) {
+    searchInput.addEventListener("input", renderExpenses);
+  }
 }
 
-// ■ add.html / edit.html (共通処理が多いのでまとめる)
+// ■ add.html / edit.html
 const isEdit = document.body.dataset.page === "edit";
 const saveBtn = document.getElementById(isEdit ? "saveEditBtn" : "addExpenseBtn");
 
@@ -254,7 +277,7 @@ if (saveBtn) {
   const eid = getExpenseId();
   const groupRef = doc(db, "groups", gid);
   
-  // UI要素
+  // 要素取得
   const titleInput = document.getElementById(isEdit ? "editExpenseTitle" : "expenseTitle");
   const amountInput = document.getElementById(isEdit ? "editExpenseAmount" : "expenseAmount");
   const dateInput = document.getElementById("expenseDate");
@@ -264,12 +287,8 @@ if (saveBtn) {
   const chipContainer = document.getElementById(isEdit ? "editParticipantCheckboxes" : "participantCheckboxes");
   const selectAllBtn = document.getElementById("selectAllBtn");
 
-  // デフォルト日付（今日）
-  if (!isEdit && dateInput) {
-    dateInput.value = new Date().toISOString().split('T')[0];
-  }
+  if (!isEdit && dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
-  // カテゴリ生成
   catSelect.innerHTML = "";
   CATEGORIES.forEach(c => {
     const opt = document.createElement("option");
@@ -278,7 +297,6 @@ if (saveBtn) {
     catSelect.appendChild(opt);
   });
 
-  // 初期データロード（グループ通貨設定、メンバー、(編集時)既存データ）
   Promise.all([
     getDoc(groupRef),
     getDocs(collection(groupRef, "members")),
@@ -287,7 +305,6 @@ if (saveBtn) {
     const gData = gSnap.data();
     const currencies = gData.currencies || { "JPY": 1 };
 
-    // 通貨セレクト生成
     currencySelect.innerHTML = "";
     Object.keys(currencies).forEach(code => {
       const opt = document.createElement("option");
@@ -297,41 +314,29 @@ if (saveBtn) {
       currencySelect.appendChild(opt);
     });
 
-    // メンバー生成
     payerSelect.innerHTML = "";
     chipContainer.innerHTML = "";
-    const allMemberIds = [];
     mSnap.forEach(m => {
-      const id = m.id;
-      const name = m.data().name;
-      allMemberIds.push(id);
-
-      // 支払い者
       const opt = document.createElement("option");
-      opt.value = id;
-      opt.textContent = name;
+      opt.value = m.id;
+      opt.textContent = m.data().name;
       payerSelect.appendChild(opt);
 
-      // 参加者チップ
       const label = document.createElement("label");
       label.className = "chip-label";
-      label.innerHTML = `<input type="checkbox" value="${id}" checked> ${name}`;
+      label.innerHTML = `<input type="checkbox" value="${m.id}" checked> ${m.data().name}`;
       chipContainer.appendChild(label);
     });
 
-    // 全員選択ボタン
     selectAllBtn.onclick = () => {
       const cbs = chipContainer.querySelectorAll("input");
-      // 全員チェック済みなら全部外す、そうでなければ全部つける
       const allChecked = Array.from(cbs).every(c => c.checked);
       cbs.forEach(c => c.checked = !allChecked);
     };
 
-    // 編集時の値セット
     if (isEdit && eSnap.exists()) {
       const d = eSnap.data();
       titleInput.value = d.title;
-      // 元通貨の金額があればそれを、なければ保存されている金額(JPY)を
       amountInput.value = d.originalAmount || d.amount; 
       dateInput.value = d.date || "";
       catSelect.value = d.category;
@@ -345,7 +350,6 @@ if (saveBtn) {
     }
   });
 
-  // 保存処理
   saveBtn.onclick = async () => {
     const title = titleInput.value.trim();
     const rawAmount = parseFloat(amountInput.value);
@@ -355,22 +359,20 @@ if (saveBtn) {
     const pIds = Array.from(chipContainer.querySelectorAll("input:checked")).map(c => c.value);
     const dateVal = dateInput.value;
 
-    // バリデーション
     if (!title) return showToast("タイトルを入力してください", "error");
-    if (!rawAmount || rawAmount <= 0) return showToast("金額を正しく入力してください", "error");
+    if (!rawAmount || rawAmount <= 0) return showToast("金額を入力してください", "error");
     if (!payerId) return showToast("支払った人を選択してください", "error");
-    if (pIds.length === 0) return showToast("誰の分か（参加者）を選択してください", "error");
+    if (pIds.length === 0) return showToast("参加者を選択してください", "error");
     if (!dateVal) return showToast("日付を選択してください", "error");
 
-    // ベース通貨(JPY)への換算
     const amountInBase = rawAmount * rate;
 
     const data = {
       title,
-      amount: amountInBase, // 集計用
-      originalAmount: rawAmount, // 表示用
+      amount: amountInBase,
+      originalAmount: rawAmount,
       currency,
-      rate, // その時のレートを保存
+      rate,
       category: catSelect.value,
       payerId,
       participantIds: pIds,
@@ -394,28 +396,23 @@ if (saveBtn) {
     }
   };
 
-  // 削除（編集時のみ）
-  const delBtn = document.getElementById("deleteExpenseBtn");
-  if (delBtn) {
-    delBtn.onclick = async () => {
+  if (isEdit) {
+    document.getElementById("deleteExpenseBtn").onclick = async () => {
       if (confirm("本当に削除しますか？")) {
         await deleteDoc(doc(groupRef, "expenses", eid));
         location.href = `group.html?g=${gid}`;
       }
     };
   }
-  
-  // 戻るボタン
   document.getElementById("backToGroupBtn").onclick = () => location.href = `group.html?g=${gid}`;
 }
 
-// ■ settle.html (精算＆支出タブ)
+// ■ settle.html (精算)
 const settleBody = document.body.dataset.page === "settle";
 if (settleBody) {
   const gid = getGroupId();
   const groupRef = doc(db, "groups", gid);
   
-  // タブ切り替え
   const tabPay = document.getElementById("tabPayment");
   const tabSpend = document.getElementById("tabSpending");
   const sectionPay = document.getElementById("sectionPayment");
@@ -436,7 +433,6 @@ if (settleBody) {
 
   document.getElementById("backToGroupBtn").onclick = () => location.href = `group.html?g=${gid}`;
 
-  // 計算ロジック
   Promise.all([
     getDocs(collection(groupRef, "members")),
     getDocs(collection(groupRef, "expenses"))
@@ -444,8 +440,8 @@ if (settleBody) {
     const members = {};
     mSnap.forEach(m => members[m.id] = m.data().name);
 
-    const net = {}; // 精算用バランス
-    const spending = {}; // 個人の支出合計（自分が消費した分）
+    const net = {}; 
+    const spending = {}; 
     Object.keys(members).forEach(id => {
       net[id] = 0;
       spending[id] = 0;
@@ -454,13 +450,10 @@ if (settleBody) {
     eSnap.forEach(docSnap => {
       const e = docSnap.data();
       if (!e.participantIds || e.participantIds.length === 0) return;
-      
       const share = e.amount / e.participantIds.length;
 
-      // 立て替え払いへの加算
       if (net[e.payerId] !== undefined) net[e.payerId] += e.amount;
 
-      // 参加者の消費加算 & 負債加算
       e.participantIds.forEach(pid => {
         if (members[pid]) {
           spending[pid] += share;
@@ -469,16 +462,15 @@ if (settleBody) {
       });
     });
 
-    // --- 支出タブ表示 ---
+    // 支出タブ
     const spendList = document.getElementById("spendingList");
     let totalEventCost = 0;
     Object.entries(spending).sort((a, b) => b[1] - a[1]).forEach(([id, amount]) => {
       const li = document.createElement("li");
-      li.className = "expense-card"; // スタイル流用
-      li.style.cursor = "default";
+      li.className = "card-item";
       li.innerHTML = `
-        <div class="expense-main">
-          <div class="expense-top">
+        <div class="card-main">
+          <div class="card-top">
             <span>${members[id]}</span>
             <span>${Math.round(amount).toLocaleString()}円</span>
           </div>
@@ -487,7 +479,6 @@ if (settleBody) {
       spendList.appendChild(li);
       totalEventCost += amount;
     });
-    // 合計表示
     const totalDiv = document.createElement("div");
     totalDiv.style.textAlign = "right";
     totalDiv.style.fontWeight = "bold";
@@ -495,8 +486,7 @@ if (settleBody) {
     totalDiv.textContent = `合計: ${Math.round(totalEventCost).toLocaleString()}円`;
     sectionSpend.appendChild(totalDiv);
 
-
-    // --- 支払いタブ（精算）表示 ---
+    // 支払いタブ
     const transferDiv = document.getElementById("transfers");
     const creditors = [];
     const debtors = [];
@@ -504,18 +494,18 @@ if (settleBody) {
     Object.entries(net).forEach(([id, val]) => {
       const v = Math.round(val);
       if (v > 0) creditors.push({ id, amount: v });
-      if (v < 0) debtors.push({ id, amount: v }); // 負の値
+      if (v < 0) debtors.push({ id, amount: v });
     });
 
-    creditors.sort((a, b) => b.amount - a.amount); // 受け取り多い順
-    debtors.sort((a, b) => a.amount - b.amount);   // 支払い多い順（マイナスの絶対値が大きい順）
+    creditors.sort((a, b) => b.amount - a.amount);
+    debtors.sort((a, b) => a.amount - b.amount);
 
     const transfers = [];
     let i = 0, j = 0;
     while (i < debtors.length && j < creditors.length) {
       const d = debtors[i];
       const c = creditors[j];
-      const pay = Math.min(-d.amount, c.amount); // 返せる額か、受け取る額の小さい方
+      const pay = Math.min(-d.amount, c.amount);
 
       if (pay > 0) {
         transfers.push({ from: d.id, to: c.id, amount: pay });
@@ -529,24 +519,24 @@ if (settleBody) {
     }
 
     transferDiv.innerHTML = "";
-    let copyText = "【Team Pay 精算リスト】\n\n";
+    let copyText = "【Team Pay 精算】\n\n";
 
     if (transfers.length === 0) {
       transferDiv.innerHTML = "<p class='muted'>精算の必要はありません 🎉</p>";
       copyText += "精算済みです！";
     } else {
       const ul = document.createElement("ul");
+      ul.className = "card-list";
       transfers.forEach(t => {
         const li = document.createElement("li");
-        li.className = "expense-card";
-        li.style.cursor = "default";
+        li.className = "card-item";
         li.innerHTML = `
-          <div class="expense-main">
-            <div class="expense-top">
+          <div class="card-main">
+            <div class="card-top">
               <span>${members[t.from]} <span style="font-size:12px; color:#666;">→</span> ${members[t.to]}</span>
               <span class="text-red">${t.amount.toLocaleString()}円</span>
             </div>
-            <div class="expense-meta">支払ってください</div>
+            <div class="card-meta">支払ってください</div>
           </div>
         `;
         ul.appendChild(li);
@@ -555,8 +545,7 @@ if (settleBody) {
       transferDiv.appendChild(ul);
     }
 
-    // メッセージ共有
-    document.getElementById("copyForLineBtn").onclick = () => copyToClipboard(copyText, "精算結果をコピーしました！");
+    document.getElementById("copyForLineBtn").onclick = () => copyToClipboard(copyText, "精算結果をコピーしました");
   });
 }
 
@@ -568,16 +557,12 @@ if (settingsBody) {
 
   document.getElementById("backToGroupBtn").onclick = () => location.href = `group.html?g=${gid}`;
 
-  // 初期ロード
   getDoc(groupRef).then(snap => {
     const data = snap.data();
     document.getElementById("groupNameInput").value = data.name;
-    
-    // 通貨リスト
     renderCurrencies(data.currencies || { "JPY": 1 });
   });
 
-  // グループ名変更
   document.getElementById("updateGroupNameBtn").onclick = async () => {
     const newName = document.getElementById("groupNameInput").value.trim();
     if (!newName) return showToast("グループ名を入力してください", "error");
@@ -585,23 +570,23 @@ if (settingsBody) {
     showToast("グループ名を更新しました");
   };
 
-  // 招待リンクコピー
   document.getElementById("copyInviteLinkBtn").onclick = () => {
     const url = `${location.origin}${location.pathname.replace("settings.html", "group.html")}?g=${gid}`;
     copyToClipboard(url, "招待リンクをコピーしました");
   };
 
-  // メンバー編集エリア
   const memList = document.getElementById("settingsMemberList");
   function loadMembers() {
     memList.innerHTML = "";
     getDocs(collection(groupRef, "members")).then(snap => {
       snap.forEach(d => {
         const li = document.createElement("li");
-        li.className = "member-item";
+        li.className = "member-card";
         li.innerHTML = `
-          <input type="text" value="${d.data().name}" id="mem-${d.id}">
-          <button class="secondary small" onclick="updateMember('${d.id}')">更新</button>
+          <input type="text" value="${d.data().name}" id="mem-${d.id}" onchange="updateMember('${d.id}', this.value)">
+          <div class="member-actions">
+            <button class="secondary small danger" onclick="deleteMember('${d.id}', '${d.data().name}')">削除</button>
+          </div>
         `;
         memList.appendChild(li);
       });
@@ -609,11 +594,18 @@ if (settingsBody) {
   }
   loadMembers();
 
-  window.updateMember = async (mid) => {
-    const newName = document.getElementById(`mem-${mid}`).value.trim();
-    if (!newName) return showToast("名前を入力してください", "error");
+  window.updateMember = async (mid, newName) => {
+    if (!newName.trim()) return showToast("名前を入力してください", "error");
     await updateDoc(doc(groupRef, "members", mid), { name: newName });
-    showToast("メンバー名を更新しました");
+    showToast("名前を更新しました");
+  };
+
+  window.deleteMember = async (mid, name) => {
+    if (confirm(`${name}さんを削除しますか？\n※この人が支払った記録も残りますが、精算計算に影響が出る可能性があります。`)) {
+      await deleteDoc(doc(groupRef, "members", mid));
+      loadMembers();
+      showToast("削除しました");
+    }
   };
 
   document.getElementById("addNewMemberBtn").onclick = async () => {
@@ -625,22 +617,20 @@ if (settingsBody) {
     showToast("メンバーを追加しました");
   };
 
-  // 通貨編集エリア
   const currencyList = document.getElementById("currencyList");
-  
   function renderCurrencies(currencies) {
     currencyList.innerHTML = "";
     Object.entries(currencies).forEach(([code, rate]) => {
       const li = document.createElement("li");
-      li.className = "member-item"; // スタイル流用
+      li.className = "member-card";
       if (code === 'JPY') {
         li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
       } else {
         li.innerHTML = `
-          <span>${code}</span>
+          <span style="font-weight:bold;">${code}</span>
           <div style="display:flex; gap:4px; align-items:center;">
-            1 ${code} = <input type="number" value="${rate}" style="width:70px; margin:0;" id="rate-${code}"> 円
-            <button class="secondary small" onclick="updateRate('${code}')">変更</button>
+            1 ${code} = <input type="number" value="${rate}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
+            <button class="secondary small" onclick="updateRate('${code}')">保存</button>
           </div>
         `;
       }
@@ -651,14 +641,11 @@ if (settingsBody) {
   window.updateRate = async (code) => {
     const newRate = parseFloat(document.getElementById(`rate-${code}`).value);
     if (!newRate || newRate <= 0) return showToast("正しいレートを入力してください", "error");
-    
-    // Firestoreから最新を取得して更新
     const snap = await getDoc(groupRef);
     const curs = snap.data().currencies;
     curs[code] = newRate;
     await updateDoc(groupRef, { currencies: curs });
-    showToast(`${code}のレートを更新しました`);
-    renderCurrencies(curs);
+    showToast("レートを更新しました");
   };
 
   document.getElementById("addCurrencyBtn").onclick = async () => {
