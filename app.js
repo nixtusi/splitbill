@@ -534,7 +534,7 @@ if (settleBody) {
         li.innerHTML = `
           <div class="card-main">
             <div class="card-top">
-              <span>${escapeHtml(members[t.from])} <span style="font-size:12px; color:#666;">→</span> ${escapeHtml(members[t.to])}</span>
+              <span>${escapeHtml(members[t.from])} → ${escapeHtml(members[t.to])}</span>
               <span class="text-red">${t.amount.toLocaleString()}円</span>
             </div>
           </div>
