@@ -2,53 +2,39 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Team Pay - 割り勘をもっとスマートに。</title>
+  <title>グループ作成 - Team Pay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
-
   <link rel="icon" href="logoimage.png" type="image/png">
-  <link rel="apple-touch-icon" href="logoimage.png">
-
-  <meta property="og:title" content="Team Pay">
-  <meta property="og:description" content="旅行やイベントの割り勘を、もっとスマートに。">
-  <meta property="og:image" content="https://splitbill-17422.web.app/logocut.jpg">
-  <meta property="og:type" content="website">
 </head>
-<body>
+<body data-page="create">
+  <header class="fixed-header">
+    <a href="index.html" class="header-left">Team Pay</a>
+    <div class="header-center">グループ作成</div>
+    <div class="header-right"></div>
+  </header>
+
   <main class="container">
-
-    <div class="brand">
-      <a href="index.html" style="display: block;">
-        <!-- <img src="logocut.jpg" alt="Splitly" class="logo" /> -->
-      </a>
-      <div>
-    　　 <a href="index.html" class="brand-link">
-          <div class="brand-title">Team Pay</div>
-        </a>
-      </div>
-    </div>
-
     <section>
-      <h2>グループ名</h2>
+      <label class="muted">グループ名</label>
       <input id="newGroupName" type="text" placeholder="旅行・飲み会など">
     </section>
 
     <section>
-      <h2>メンバー追加</h2>
-      <div class="inline-form">
+      <label class="muted">メンバー追加</label>
+      <div class="input-group">
         <input id="newMemberName" type="text" placeholder="名前を入力">
-        <button id="addTempMemberBtn">追加</button>
+        <button id="addTempMemberBtn" class="secondary small">追加</button>
       </div>
 
-      <ul id="tempMemberList"></ul>
+      <ul id="tempMemberList" class="card-list"></ul>
       <p class="muted">※ 後からも追加できます</p>
     </section>
 
-    <div style="margin-top: 24px;">
-      <button id="createFinalBtn" class="full">グループを作成</button>
-      <button class="secondary full" onclick="location.href='menu.html'">戻る</button>
+    <div class="bottom-actions">
+      <button class="secondary full" onclick="location.href='index.html'">戻る</button>
+      <button id="createFinalBtn" class="full">作成する</button>
     </div>
-
   </main>
 
   <script type="module" src="firebase-config.js"></script>
