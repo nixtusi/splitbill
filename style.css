@@ -5,7 +5,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent; /* タップ時のハイライトを消す（アプリっぽく） */
+  -webkit-tap-highlight-color: transparent;
 }
 
 :root {
@@ -25,7 +25,7 @@ html, body {
   height: 100%;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden; /* ★重要：画面の横揺れを完全に防止 */
+  overflow-x: hidden;
 }
 
 body {
@@ -46,7 +46,7 @@ body {
   padding: 80px 20px 120px;
   position: relative;
   box-shadow: 0 0 20px rgba(0,0,0,0.05);
-  overflow-x: hidden; /* ★重要：コンテナ内の要素のはみ出しも防止 */
+  overflow-x: hidden;
 }
 
 /* 固定ヘッダー */
@@ -60,13 +60,14 @@ body {
   height: 60px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px); /* Safari用 */
+  -webkit-backdrop-filter: blur(5px);
   border-bottom: 1px solid var(--gray-border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* 左右の要素を配置 */
   padding: 0 20px;
   z-index: 100;
+  /* position: relative;  <-- これがあると絶対配置の基準になってしまうため削除してもよいが、念のため残す場合は注意 */
 }
 
 .header-left {
@@ -75,16 +76,32 @@ body {
   color: var(--primary-color);
   text-decoration: none;
   letter-spacing: -0.5px;
+  z-index: 10; /* 前面に */
+  /* 幅を確保して、左端に固定 */
+  flex: 0 0 auto;
 }
 
 .header-center {
+  /* 絶対配置で画面中央に強制配置 */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  
   font-size: 16px;
   font-weight: 700;
   color: var(--text-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
+  max-width: 50%; /* 左右ボタンと被らないように制限 */
+  text-align: center;
+  z-index: 1; /* 最背面ではないが、ボタンよりは下 */
+}
+
+.header-right {
+  /* 右端に固定 */
+  flex: 0 0 auto;
+  z-index: 10;
 }
 
 .header-right button {
@@ -135,7 +152,7 @@ select {
   background: #fdfdfd;
   transition: border 0.2s;
   appearance: none;
-  -webkit-appearance: none; /* iOSでのデフォルトスタイル解除 */
+  -webkit-appearance: none;
 }
 
 input:focus, select:focus {
@@ -186,7 +203,7 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  user-select: none; /* ボタン文字選択防止 */
+  user-select: none;
 }
 
 button:hover {
@@ -247,15 +264,19 @@ button.small {
   background: #f9fafb;
 }
 
+/* ★修正: アイコンの背景色・丸みを削除 */
 .card-icon {
   font-size: 24px;
-  width: 40px;
+  /* width, height の固定を解除しても良いが、レイアウト崩れ防止のため残す場合は background: transparent に */
+  width: 40px; 
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0fdf4;
-  border-radius: 50%;
+  
+  background: transparent; /* 背景透明 */
+  border-radius: 0;        /* 角丸なし */
+  
   flex-shrink: 0;
 }
 
@@ -391,7 +412,7 @@ button.small {
   text-align: center;
   padding: 60px 0 40px;
   background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
-  margin: -80px -20px 40px; /* コンテナのパディングを相殺 */
+  margin: -80px -20px 40px;
   border-bottom-left-radius: 30px;
   border-bottom-right-radius: 30px;
 }
