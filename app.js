@@ -654,23 +654,25 @@ if (settingsBody) {
   };
 
   // --- 通貨管理 ---
+  // --- 通貨管理 ---
   const currencyList = document.getElementById("currencyList");
   function renderCurrencies(currencies) {
     currencyList.innerHTML = "";
     Object.entries(currencies).forEach(([code, rate]) => {
+      if (code === 'JPY') return; 
+
       const li = document.createElement("li");
       li.className = "member-card";
-      if (code === 'JPY') {
-        li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
-      } else {
-        li.innerHTML = `
-          <span style="font-weight:bold;">${code}</span>
-          <div style="display:flex; gap:4px; align-items:center;">
-            1 ${code} ≒ <input type="number" value="${rate}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
-            <button class="secondary small danger" onclick="removeCurrency('${code}')">削除</button>
-          </div>
-        `;
-      }
+      
+      // elseブロックを削除して直接記述
+      li.innerHTML = `
+        <span style="font-weight:bold;">${code}</span>
+        <div style="display:flex; gap:4px; align-items:center;">
+          1 ${code} ≒ <input type="number" value="${rate}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
+          <button class="secondary small danger" onclick="removeCurrency('${code}')">削除</button>
+        </div>
+      `;
+      
       currencyList.appendChild(li);
     });
   }
