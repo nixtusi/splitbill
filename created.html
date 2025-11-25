@@ -2,32 +2,34 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Team Pay - 作成完了</title>
+  <title>作成完了 - Team Pay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
+  <header class="fixed-header">
+    <a href="index.html" class="header-left">Team Pay</a>
+    <div class="header-center">作成完了</div>
+    <div class="header-right"></div>
+  </header>
 
-    <div class="brand" style="margin-bottom: 20px;">
-      <a href="index.html" style="display: block;">
-        <!-- <img src="logocut.jpg" alt="Splitly" class="logo" /> -->
-      </a>
-      <div>
-        <a href="index.html" class="brand-link">
-          <div class="brand-title">Team Pay</div>
-        </a>
-        <div class="brand-caption">作成完了！</div>
-      </div>
+  <main class="container">
+    
+    <div style="text-align: center; margin-top: 20px; margin-bottom: 40px;">
+      <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
+      <h2>グループを作成しました！</h2>
+      <p class="muted">URLをメンバーに共有しましょう。</p>
     </div>
 
     <section>
-      <h2>グループURL</h2>
-      <p id="createdGroupUrl" class="muted"></p>
-      <button id="copyUrlBtn" class="full">リンクをコピー</button>
+      <label class="muted">グループURL</label>
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 12px; word-break: break-all; margin-bottom: 16px; font-size: 14px; font-family: monospace; border: 1px solid #e5e7eb;">
+        <span id="createdGroupUrl">読み込み中...</span>
+      </div>
+      <button id="copyUrlBtn" class="secondary full">リンクをコピー</button>
     </section>
 
-    <div style="margin-top: 24px;">
+    <div class="bottom-actions single">
       <button id="goGroupBtn" class="full">グループへ移動</button>
     </div>
 

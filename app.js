@@ -8,6 +8,17 @@ import {
 
 /* --- 共通ユーティリティ --- */
 
+// XSS対策：HTMLエスケープ関数
+function escapeHtml(text) {
+  if (text == null) return '';
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function showToast(msg, type = 'success') {
   const div = document.createElement('div');
   div.className = `toast ${type} show`;
@@ -69,7 +80,6 @@ const startBtn = document.getElementById("startBtn");
 if (startBtn) {
   startBtn.onclick = () => location.href = "create.html";
   
-  // 履歴表示（カードスタイル・アイコンなし）
   const historyList = document.getElementById("groupHistoryList");
   if (historyList) {
     let history = [];
@@ -82,15 +92,14 @@ if (startBtn) {
       history.forEach(h => {
         const li = document.createElement("li");
         li.className = "card-item clickable";
-        li.onclick = () => location.href = `group.html?g=${h.id}`;
+        li.onclick = () => location.href = `group.html?g=${escapeHtml(h.id)}`;
         
-        // アイコン部分を削除しました
         li.innerHTML = `
           <div class="card-main">
             <div class="card-top">
-              <span>${h.name}</span>
+              <span>${escapeHtml(h.name)}</span>
             </div>
-            <div class="card-meta">ID: ${h.id}</div>
+            <div class="card-meta">ID: ${escapeHtml(h.id)}</div>
           </div>
         `;
         historyList.appendChild(li);
@@ -115,7 +124,7 @@ if (createFinalBtn) {
       li.className = "member-card"; 
       li.style.padding = "8px 12px";
       li.innerHTML = `
-        <span>${name}</span>
+        <span>${escapeHtml(name)}</span>
         <button class="secondary small" data-idx="${i}">削除</button>
       `;
       tempUl.appendChild(li);
@@ -241,12 +250,12 @@ if (expenseListEl) {
           <div class="card-icon">${cat.icon}</div>
           <div class="card-main">
             <div class="card-top">
-              <span>${e.title}</span>
-              <span>${amountStr}</span>
+              <span>${escapeHtml(e.title)}</span>
+              <span>${escapeHtml(amountStr)}</span>
             </div>
             <div class="card-meta">
-              <span class="expense-date">${e.date || ""}</span>
-              ${payer} が立替 • ${e.participantIds.length}人
+              <span class="expense-date">${escapeHtml(e.date || "")}</span>
+              ${escapeHtml(payer)} が立替 • ${e.participantIds.length}人
             </div>
           </div>
         `;
@@ -315,7 +324,8 @@ if (saveBtn) {
 
       const label = document.createElement("label");
       label.className = "chip-label";
-      label.innerHTML = `<input type="checkbox" value="${m.id}" checked> ${m.data().name}`;
+      // checkboxのvalueはIDなので安全だが、表示名はエスケープ
+      label.innerHTML = `<input type="checkbox" value="${m.id}" checked> ${escapeHtml(m.data().name)}`;
       chipContainer.appendChild(label);
     });
 
@@ -462,7 +472,7 @@ if (settleBody) {
       li.innerHTML = `
         <div class="card-main">
           <div class="card-top">
-            <span>${members[id]}</span>
+            <span>${escapeHtml(members[id])}</span>
             <span>${Math.round(amount).toLocaleString()}円</span>
           </div>
         </div>
@@ -524,7 +534,7 @@ if (settleBody) {
         li.innerHTML = `
           <div class="card-main">
             <div class="card-top">
-              <span>${members[t.from]} <span style="font-size:12px; color:#666;">→</span> ${members[t.to]}</span>
+              <span>${escapeHtml(members[t.from])} <span style="font-size:12px; color:#666;">→</span> ${escapeHtml(members[t.to])}</span>
               <span class="text-red">${t.amount.toLocaleString()}円</span>
             </div>
             <div class="card-meta">支払ってください</div>
@@ -546,13 +556,11 @@ if (settingsBody) {
   const gid = getGroupId();
   const groupRef = doc(db, "groups", gid);
 
-  // キャンセルボタン
   document.getElementById("cancelSettingsBtn").onclick = () => location.href = `group.html?g=${gid}`;
 
   let currentCurrencies = {}; 
   let expensesCache = [];
 
-  // 初期ロード
   Promise.all([
     getDoc(groupRef),
     getDocs(collection(groupRef, "expenses"))
@@ -566,7 +574,6 @@ if (settingsBody) {
     renderCurrencies(currentCurrencies);
   });
 
-  // 保存ボタン
   document.getElementById("saveSettingsBtn").onclick = async () => {
     const newName = document.getElementById("groupNameInput").value.trim();
     if (!newName) return showToast("グループ名を入力してください", "error");
@@ -612,10 +619,11 @@ if (settingsBody) {
       snap.forEach(d => {
         const li = document.createElement("li");
         li.className = "member-card";
+        // inputのvalue属性は安全だが、念のため
         li.innerHTML = `
-          <input type="text" value="${d.data().name}" id="mem-${d.id}" onchange="updateMember('${d.id}', this.value)">
+          <input type="text" value="${escapeHtml(d.data().name)}" id="mem-${d.id}" onchange="updateMember('${d.id}', this.value)">
           <div class="member-actions">
-            <button class="secondary small danger" onclick="deleteMember('${d.id}', '${d.data().name}')">削除</button>
+            <button class="secondary small danger" onclick="deleteMember('${d.id}', '${escapeHtml(d.data().name)}')">削除</button>
           </div>
         `;
         memList.appendChild(li);
@@ -631,7 +639,6 @@ if (settingsBody) {
   };
 
   window.deleteMember = async (mid, name) => {
-    // 使用状況チェック
     const isUsed = expensesCache.some(e => e.payerId === mid || (e.participantIds || []).includes(mid));
     if (isUsed) {
       return showToast(`${name}さんは既に支払いに関わっているため削除できません`, "error");
@@ -654,7 +661,6 @@ if (settingsBody) {
   };
 
   // --- 通貨管理 ---
-  // --- 通貨管理 ---
   const currencyList = document.getElementById("currencyList");
   function renderCurrencies(currencies) {
     currencyList.innerHTML = "";
@@ -663,22 +669,18 @@ if (settingsBody) {
 
       const li = document.createElement("li");
       li.className = "member-card";
-      
-      // elseブロックを削除して直接記述
       li.innerHTML = `
-        <span style="font-weight:bold;">${code}</span>
+        <span style="font-weight:bold;">${escapeHtml(code)}</span>
         <div style="display:flex; gap:4px; align-items:center;">
-          1 ${code} ≒ <input type="number" value="${rate}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
+          1 ${escapeHtml(code)} ≒ <input type="number" value="${Math.round(rate * 10000) / 10000}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
           <button class="secondary small danger" onclick="removeCurrency('${code}')">削除</button>
         </div>
       `;
-      
       currencyList.appendChild(li);
     });
   }
 
   window.removeCurrency = (code) => {
-    // 使用状況チェック
     const isUsed = expensesCache.some(e => e.currency === code);
     if (isUsed) {
         return showToast(`${code}は既に支出で使用されているため削除できません`, "error");
@@ -694,7 +696,6 @@ if (settingsBody) {
     location.href = `currency_select.html?g=${gid}`;
   };
 
-  // レート自動更新
   document.getElementById("autoRateBtn").onclick = async () => {
     try {
         const codes = Object.keys(currentCurrencies).filter(c => c !== "JPY");
@@ -801,10 +802,10 @@ if (currencySelectBody) {
             <input type="checkbox" id="${cid}" value="${r.code}" data-rate="${r.rate}" ${isAdded ? 'disabled checked' : ''} style="width:20px; height:20px; margin-right:12px; accent-color:var(--primary-color);">
             <div>
               <div class="card-top">
-                <span>${r.code} - ${r.name}</span>
+                <span>${escapeHtml(r.code)} - ${escapeHtml(r.name)}</span>
               </div>
               <div class="card-meta">
-                1 ${r.code} ≒ ${r.rate.toFixed(2)} 円
+                1 ${escapeHtml(r.code)} ≒ ${r.rate.toFixed(2)} 円
               </div>
             </div>
           </label>
