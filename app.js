@@ -537,7 +537,6 @@ if (settleBody) {
               <span>${escapeHtml(members[t.from])} <span style="font-size:12px; color:#666;">→</span> ${escapeHtml(members[t.to])}</span>
               <span class="text-red">${t.amount.toLocaleString()}円</span>
             </div>
-            <div class="card-meta">支払ってください</div>
           </div>
         `;
         ul.appendChild(li);
