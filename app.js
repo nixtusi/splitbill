@@ -626,16 +626,25 @@ if (settingsBody) {
       if (code === 'JPY') {
         li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
       } else {
+        // レート表示を調整
         li.innerHTML = `
           <span style="font-weight:bold;">${code}</span>
           <div style="display:flex; gap:4px; align-items:center;">
-            1 ${code} = <input type="number" value="${rate}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
+            1 ${code} ≒ <input type="number" value="${Math.round(rate * 10000) / 10000}" style="width:80px; text-align:right; border-bottom:1px solid #ddd;" id="rate-${code}"> 円
             <button class="secondary small" onclick="updateRate('${code}')">保存</button>
           </div>
         `;
       }
       currencyList.appendChild(li);
     });
+  }
+
+  // 通貨追加画面へ遷移 (新規)
+  const goAddBtn = document.getElementById("goAddCurrencyBtn");
+  if (goAddBtn) {
+    goAddBtn.onclick = () => {
+      location.href = `currency_select.html?g=${gid}`;
+    };
   }
 
   window.updateRate = async (code) => {
@@ -715,4 +724,143 @@ if (settingsBody) {
       }
     };
   }
+}
+
+// ■ currency_select.html (通貨選択画面) [新規追加]
+const currencySelectBody = document.body.dataset.page === "currency_select";
+if (currencySelectBody) {
+  const gid = getGroupId();
+  if (!gid) location.href = "index.html";
+  
+  const groupRef = doc(db, "groups", gid);
+  const listEl = document.getElementById("currencySelectList");
+  const searchInput = document.getElementById("currencySearchInput");
+  const confirmBtn = document.getElementById("confirmCurrencyBtn");
+  const loadingMsg = document.getElementById("loadingMsg");
+
+  // 通貨名辞書 (主要なもの)
+  const CURRENCY_NAMES = {
+    "AUD":"Australian Dollar", "BGN":"Bulgarian Lev", "BRL":"Brazilian Real",
+    "CAD":"Canadian Dollar", "CHF":"Swiss Franc", "CNY":"Chinese Renminbi Yuan",
+    "CZK":"Czech Koruna", "DKK":"Danish Krone", "EUR":"Euro", "GBP":"British Pound",
+    "HKD":"Hong Kong Dollar", "HUF":"Hungarian Forint", "IDR":"Indonesian Rupiah",
+    "ILS":"Israeli New Sheqel", "INR":"Indian Rupee", "ISK":"Icelandic Króna",
+    "JPY":"Japanese Yen", "KRW":"South Korean Won", "MXN":"Mexican Peso",
+    "MYR":"Malaysian Ringgit", "NOK":"Norwegian Krone", "NZD":"New Zealand Dollar",
+    "PHP":"Philippine Peso", "PLN":"Polish Złoty", "RON":"Romanian Leu",
+    "SEK":"Swedish Krona", "SGD":"Singapore Dollar", "THB":"Thai Baht",
+    "TRY":"Turkish Lira", "USD":"United States Dollar", "ZAR":"South African Rand"
+  };
+
+  let allRates = {}; // APIから取得したレート (1 JPY = x Currency) -> 逆数にして 1 Currency = y JPY で管理したい
+  let existingCurrencies = {};
+
+  // 初期化
+  (async () => {
+    try {
+      // 1. グループの既存通貨を取得（重複追加を防ぐため）
+      const groupSnap = await getDoc(groupRef);
+      if (groupSnap.exists()) {
+        existingCurrencies = groupSnap.data().currencies || {};
+      }
+
+      // 2. Frankfurter API から最新レート取得
+      // JPYをベースにすると、 1 JPY = 0.006 USD みたいになる
+      // 欲しいのは 1 USD = 150 JPY なので、APIの結果の逆数をとるか、
+      // 逆に `base=USD` などにするのは全部取得できないので、
+      // `https://api.frankfurter.dev/v1/latest?base=JPY` を叩いて逆数計算する
+      const res = await fetch("https://api.frankfurter.dev/v1/latest?base=JPY");
+      if (!res.ok) throw new Error("レート取得失敗");
+      const json = await res.json();
+      
+      // データ整形
+      const rates = [];
+      Object.entries(json.rates).forEach(([code, val]) => {
+        // JPYベースなので val は「1円で買える外貨額」。
+        // ユーザーに見せたいのは「1外貨は何円か」なので 1 / val
+        const jpyRate = 1 / val;
+        rates.push({
+          code,
+          rate: jpyRate,
+          name: CURRENCY_NAMES[code] || code
+        });
+      });
+
+      // ソート（コード順）
+      rates.sort((a, b) => a.code.localeCompare(b.code));
+      allRates = rates;
+
+      loadingMsg.style.display = "none";
+      renderList(rates);
+
+    } catch (err) {
+      console.error(err);
+      loadingMsg.textContent = "エラーが発生しました";
+    }
+  })();
+
+  // リスト描画
+  function renderList(rates) {
+    listEl.innerHTML = "";
+    const filter = (searchInput.value || "").toLowerCase();
+
+    const filtered = rates.filter(r => 
+      r.code.toLowerCase().includes(filter) || 
+      r.name.toLowerCase().includes(filter)
+    );
+
+    filtered.forEach(r => {
+      // 既に追加済みの場合は無効化表示
+      const isAdded = existingCurrencies.hasOwnProperty(r.code);
+      
+      const li = document.createElement("li");
+      li.className = "card-item";
+      if (isAdded) li.style.opacity = "0.6";
+
+      // チェックボックスID
+      const cid = `chk-${r.code}`;
+
+      li.innerHTML = `
+        <div class="card-main">
+          <label for="${cid}" style="display:flex; align-items:center; width:100%; cursor:${isAdded ? 'default' : 'pointer'};">
+            <input type="checkbox" id="${cid}" value="${r.code}" data-rate="${r.rate}" ${isAdded ? 'disabled checked' : ''} style="width:20px; height:20px; margin-right:12px; accent-color:var(--primary-color);">
+            <div>
+              <div class="card-top">
+                <span>${r.code} - ${r.name}</span>
+              </div>
+              <div class="card-meta">
+                1 ${r.code} ≒ ${r.rate.toFixed(2)} 円
+              </div>
+            </div>
+          </label>
+        </div>
+      `;
+      listEl.appendChild(li);
+    });
+  }
+
+  // 検索
+  searchInput.addEventListener("input", () => renderList(allRates));
+
+  // 完了ボタン
+  confirmBtn.onclick = async () => {
+    const checks = listEl.querySelectorAll("input[type=checkbox]:checked:not(:disabled)");
+    if (checks.length === 0) {
+      return location.href = `settings.html?g=${gid}`; // 何も選ばず戻る
+    }
+
+    const newCurrencies = { ...existingCurrencies };
+    let count = 0;
+
+    checks.forEach(chk => {
+      const code = chk.value;
+      const rate = parseFloat(chk.dataset.rate);
+      newCurrencies[code] = rate;
+      count++;
+    });
+
+    await updateDoc(groupRef, { currencies: newCurrencies });
+    showToast(`${count}件の通貨を追加しました`);
+    setTimeout(() => location.href = `settings.html?g=${gid}`, 500);
+  };
 }

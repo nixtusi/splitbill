@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>通貨を選択 - Team Pay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="currency_select">
+  <header class="fixed-header">
+    <div class="header-left" style="font-size:16px;" onclick="history.back()">キャンセル</div>
+    <div class="header-center">通貨を追加</div>
+    <div class="header-right">
+      <button id="confirmCurrencyBtn" style="font-size:14px; padding:6px 12px;">完了</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <input type="text" id="currencySearchInput" class="search-input" placeholder="通貨名やコードで検索">
+      
+      <div id="loadingMsg" class="loading-spinner">レートを取得中...</div>
+      
+      <ul id="currencySelectList" class="card-list">
+        </ul>
+    </section>
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
