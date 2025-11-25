@@ -18,11 +18,8 @@
     <section>
       <h2>基本設定</h2>
       <label class="muted">グループ名</label>
-      <div class="input-group">
-        <input type="text" id="groupNameInput">
-        <button id="updateGroupNameBtn">保存</button>
-      </div>
-      <button id="copyInviteLinkBtn" class="secondary full">招待リンクをコピー</button>
+      <input type="text" id="groupNameInput">
+      <button id="copyInviteLinkBtn" class="secondary full" style="margin-top:8px;">招待リンクをコピー</button>
     </section>
 
     <section>
@@ -50,8 +47,9 @@
       </button> -->
     </section>
 
-    <div class="bottom-actions single">
-      <button id="backToGroupBtn" class="full">完了して戻る</button>
+    <div class="bottom-actions">
+      <button id="cancelSettingsBtn" class="secondary full">キャンセル</button>
+      <button id="saveSettingsBtn" class="full">設定を保存</button>
     </div>
   </main>
   <script type="module" src="firebase-config.js"></script>
