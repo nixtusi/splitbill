@@ -453,3 +453,8 @@ footer a {
 /* ユーティリティ */
 .text-green { color: var(--income-green) !important; font-weight: bold; }
 .text-red { color: var(--payment-red) !important; font-weight: bold; }
+
+.material-icons {
+  font-size: 28px;
+  color: #333;
+}

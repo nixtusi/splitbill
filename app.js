@@ -360,7 +360,7 @@ if (saveBtn) {
     const dateVal = dateInput.value;
 
     if (!title) return showToast("タイトルを入力してください", "error");
-    if (!rawAmount || rawAmount <= 0) return showToast("金額を入力してください", "error");
+    if (isNaN(rawAmount) || rawAmount <= 0) return showToast("金額を入力してください", "error");
     if (!payerId) return showToast("支払った人を選択してください", "error");
     if (pIds.length === 0) return showToast("参加者を選択してください", "error");
     if (!dateVal) return showToast("日付を選択してください", "error");
@@ -651,7 +651,8 @@ if (settingsBody) {
   document.getElementById("addCurrencyBtn").onclick = async () => {
     const code = document.getElementById("newCurrencyCode").value.trim().toUpperCase();
     const rate = parseFloat(document.getElementById("newCurrencyRate").value);
-    if (!code || !rate) return showToast("通貨コードとレートを入力してください", "error");
+    if (!code) return showToast("通貨コードを入力してください", "error");
+    if (isNaN(rate) || rate <= 0) return showToast("正しいレートを入力してください", "error");
     if (code === 'JPY') return showToast("JPYは基準通貨です", "error");
 
     const snap = await getDoc(groupRef);
@@ -664,4 +665,58 @@ if (settingsBody) {
     showToast("通貨を追加しました");
     renderCurrencies(curs);
   };
+
+  // --- 為替レート自動更新 ------------------------------------
+  const autoRateBtn = document.getElementById("autoRateBtn");
+
+  if (autoRateBtn) {
+    autoRateBtn.onclick = async () => {
+      try {
+        const snap = await getDoc(groupRef);
+        const data = snap.data();
+        const currencies = data.currencies || { JPY: 1 };
+
+        // JPY以外の通貨だけ抽出（例：["USD", "EUR"]）
+        const codes = Object.keys(currencies).filter(c => c !== "JPY");
+
+        if (codes.length === 0) {
+          return showToast("JPY以外の通貨が登録されていません", "error");
+        }
+
+        // Frankfurter API に問い合わせ
+        const url = `https://api.frankfurter.dev/latest?from=JPY&to=${codes.join(",")}`;
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error("為替APIの呼び出しに失敗しました");
+        }
+
+        const json = await res.json();
+        if (!json.rates) {
+          throw new Error("レート情報が取得できませんでした");
+        }
+
+        // JSON例 → { rates: { USD: 0.0067, EUR: 0.0061 } }
+        // Team Pay の方式（1通貨 = 何円）に変換
+        codes.forEach(code => {
+          const perJPY = json.rates[code];
+          if (perJPY) {
+            currencies[code] = 1 / perJPY; // 1通貨あたりの円価格
+          }
+        });
+
+        // Firestore 更新
+        await updateDoc(groupRef, { currencies });
+
+        // UI 更新
+        renderCurrencies(currencies);
+
+        showToast("為替レートを更新しました", "success");
+
+      } catch (err) {
+        console.error(err);
+        showToast("為替レートの取得に失敗しました", "error");
+      }
+    };
+  }
 }
