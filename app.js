@@ -69,7 +69,7 @@ const startBtn = document.getElementById("startBtn");
 if (startBtn) {
   startBtn.onclick = () => location.href = "create.html";
   
-  // 履歴表示（カードスタイル）
+  // 履歴表示（カードスタイル・アイコンなし）
   const historyList = document.getElementById("groupHistoryList");
   if (historyList) {
     let history = [];
@@ -84,8 +84,8 @@ if (startBtn) {
         li.className = "card-item clickable";
         li.onclick = () => location.href = `group.html?g=${h.id}`;
         
+        // アイコン部分を削除しました
         li.innerHTML = `
-          <div class="card-icon">📂</div>
           <div class="card-main">
             <div class="card-top">
               <span>${h.name}</span>
@@ -112,7 +112,7 @@ if (createFinalBtn) {
     tempUl.innerHTML = "";
     tempMembers.forEach((name, i) => {
       const li = document.createElement("li");
-      li.className = "member-card"; // カードスタイル流用
+      li.className = "member-card"; 
       li.style.padding = "8px 12px";
       li.innerHTML = `
         <span>${name}</span>
@@ -158,7 +158,6 @@ if (createFinalBtn) {
 
     try {
       const hist = JSON.parse(localStorage.getItem("teampay_history") || "[]");
-      // 重複排除
       const newHist = [{ id: gid, name: groupName }, ...hist.filter(h => h.id !== gid)];
       localStorage.setItem("teampay_history", JSON.stringify(newHist.slice(0, 10)));
     } catch (_) {}
@@ -188,29 +187,24 @@ if (expenseListEl) {
   let allExpenses = [];
   let membersMap = {};
 
-  // 遷移ボタン
   document.getElementById("settingsBtn").onclick = () => location.href = `settings.html?g=${gid}`;
   document.getElementById("goAddBtn").onclick = () => location.href = `add.html?g=${gid}`;
   document.getElementById("goSettleBtn").onclick = () => location.href = `settle.html?g=${gid}`;
 
-  // グループ名
   onSnapshot(doc(db, "groups", gid), (docSnap) => {
     if (docSnap.exists()) groupTitleEl.textContent = docSnap.data().name;
   });
 
-  // メンバー
   onSnapshot(collection(doc(db, "groups", gid), "members"), (snap) => {
     membersMap = {};
     snap.forEach(d => membersMap[d.id] = d.data().name);
-    renderExpenses(); // メンバー名更新のため再描画
+    renderExpenses();
   });
 
-  // 支出一覧
   onSnapshot(collection(doc(db, "groups", gid), "expenses"), (snap) => {
     allExpenses = [];
     snap.forEach(d => allExpenses.push({ id: d.id, ...d.data() }));
     
-    // 日付順、作成順
     allExpenses.sort((a, b) => {
       if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
       return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
@@ -220,7 +214,6 @@ if (expenseListEl) {
     document.getElementById("loadingMsg").style.display = "none";
   });
 
-  // 描画関数 (検索対応)
   function renderExpenses() {
     const filterText = (searchInput.value || "").toLowerCase();
     const filtered = allExpenses.filter(e => 
@@ -262,7 +255,6 @@ if (expenseListEl) {
     }
   }
 
-  // 検索イベント
   if (searchInput) {
     searchInput.addEventListener("input", renderExpenses);
   }
@@ -277,7 +269,6 @@ if (saveBtn) {
   const eid = getExpenseId();
   const groupRef = doc(db, "groups", gid);
   
-  // 要素取得
   const titleInput = document.getElementById(isEdit ? "editExpenseTitle" : "expenseTitle");
   const amountInput = document.getElementById(isEdit ? "editExpenseAmount" : "expenseAmount");
   const dateInput = document.getElementById("expenseDate");
@@ -555,11 +546,11 @@ if (settingsBody) {
   const gid = getGroupId();
   const groupRef = doc(db, "groups", gid);
 
-  // キャンセル
+  // キャンセルボタン
   document.getElementById("cancelSettingsBtn").onclick = () => location.href = `group.html?g=${gid}`;
 
   let currentCurrencies = {}; 
-  let expensesCache = []; // 削除チェック用に支出データを保持
+  let expensesCache = [];
 
   // 初期ロード
   Promise.all([
@@ -570,12 +561,12 @@ if (settingsBody) {
     document.getElementById("groupNameInput").value = data.name;
     currentCurrencies = data.currencies || { "JPY": 1 };
     
-    eSnap.forEach(doc => expensesCache.push(doc.data())); // 支出データをキャッシュ
+    eSnap.forEach(doc => expensesCache.push(doc.data()));
 
     renderCurrencies(currentCurrencies);
   });
 
-  // 保存
+  // 保存ボタン
   document.getElementById("saveSettingsBtn").onclick = async () => {
     const newName = document.getElementById("groupNameInput").value.trim();
     if (!newName) return showToast("グループ名を入力してください", "error");
@@ -685,7 +676,7 @@ if (settingsBody) {
   }
 
   window.removeCurrency = (code) => {
-    // 使用状況チェック (保存済みの支出で使われているか)
+    // 使用状況チェック
     const isUsed = expensesCache.some(e => e.currency === code);
     if (isUsed) {
         return showToast(`${code}は既に支出で使用されているため削除できません`, "error");
@@ -701,7 +692,7 @@ if (settingsBody) {
     location.href = `currency_select.html?g=${gid}`;
   };
 
-  // (自動更新ロジックは変更なし)
+  // レート自動更新
   document.getElementById("autoRateBtn").onclick = async () => {
     try {
         const codes = Object.keys(currentCurrencies).filter(c => c !== "JPY");
@@ -721,5 +712,126 @@ if (settingsBody) {
     } catch (e) {
         showToast("レート取得失敗", "error");
     }
+  };
+}
+
+// ■ currency_select.html (通貨選択)
+const currencySelectBody = document.body.dataset.page === "currency_select";
+if (currencySelectBody) {
+  const gid = getGroupId();
+  if (!gid) location.href = "index.html";
+  
+  const groupRef = doc(db, "groups", gid);
+  const listEl = document.getElementById("currencySelectList");
+  const searchInput = document.getElementById("currencySearchInput");
+  const confirmBtn = document.getElementById("confirmCurrencyBtn");
+  const loadingMsg = document.getElementById("loadingMsg");
+
+  const CURRENCY_NAMES = {
+    "AUD":"Australian Dollar", "BGN":"Bulgarian Lev", "BRL":"Brazilian Real",
+    "CAD":"Canadian Dollar", "CHF":"Swiss Franc", "CNY":"Chinese Renminbi Yuan",
+    "CZK":"Czech Koruna", "DKK":"Danish Krone", "EUR":"Euro", "GBP":"British Pound",
+    "HKD":"Hong Kong Dollar", "HUF":"Hungarian Forint", "IDR":"Indonesian Rupiah",
+    "ILS":"Israeli New Sheqel", "INR":"Indian Rupee", "ISK":"Icelandic Króna",
+    "JPY":"Japanese Yen", "KRW":"South Korean Won", "MXN":"Mexican Peso",
+    "MYR":"Malaysian Ringgit", "NOK":"Norwegian Krone", "NZD":"New Zealand Dollar",
+    "PHP":"Philippine Peso", "PLN":"Polish Złoty", "RON":"Romanian Leu",
+    "SEK":"Swedish Krona", "SGD":"Singapore Dollar", "THB":"Thai Baht",
+    "TRY":"Turkish Lira", "USD":"United States Dollar", "ZAR":"South African Rand"
+  };
+
+  let allRates = {}; 
+  let existingCurrencies = {};
+
+  (async () => {
+    try {
+      const groupSnap = await getDoc(groupRef);
+      if (groupSnap.exists()) {
+        existingCurrencies = groupSnap.data().currencies || {};
+      }
+
+      const res = await fetch("https://api.frankfurter.dev/v1/latest?base=JPY");
+      if (!res.ok) throw new Error("レート取得失敗");
+      const json = await res.json();
+      
+      const rates = [];
+      Object.entries(json.rates).forEach(([code, val]) => {
+        const jpyRate = 1 / val;
+        rates.push({
+          code,
+          rate: jpyRate,
+          name: CURRENCY_NAMES[code] || code
+        });
+      });
+
+      rates.sort((a, b) => a.code.localeCompare(b.code));
+      allRates = rates;
+
+      loadingMsg.style.display = "none";
+      renderList(rates);
+
+    } catch (err) {
+      console.error(err);
+      loadingMsg.textContent = "エラーが発生しました";
+    }
+  })();
+
+  function renderList(rates) {
+    listEl.innerHTML = "";
+    const filter = (searchInput.value || "").toLowerCase();
+
+    const filtered = rates.filter(r => 
+      r.code.toLowerCase().includes(filter) || 
+      r.name.toLowerCase().includes(filter)
+    );
+
+    filtered.forEach(r => {
+      const isAdded = existingCurrencies.hasOwnProperty(r.code);
+      const li = document.createElement("li");
+      li.className = "card-item";
+      if (isAdded) li.style.opacity = "0.6";
+
+      const cid = `chk-${r.code}`;
+
+      li.innerHTML = `
+        <div class="card-main">
+          <label for="${cid}" style="display:flex; align-items:center; width:100%; cursor:${isAdded ? 'default' : 'pointer'};">
+            <input type="checkbox" id="${cid}" value="${r.code}" data-rate="${r.rate}" ${isAdded ? 'disabled checked' : ''} style="width:20px; height:20px; margin-right:12px; accent-color:var(--primary-color);">
+            <div>
+              <div class="card-top">
+                <span>${r.code} - ${r.name}</span>
+              </div>
+              <div class="card-meta">
+                1 ${r.code} ≒ ${r.rate.toFixed(2)} 円
+              </div>
+            </div>
+          </label>
+        </div>
+      `;
+      listEl.appendChild(li);
+    });
+  }
+
+  searchInput.addEventListener("input", () => renderList(allRates));
+
+  confirmBtn.onclick = async () => {
+    const checks = listEl.querySelectorAll("input[type=checkbox]:checked:not(:disabled)");
+    if (checks.length === 0) {
+      return location.href = `settings.html?g=${gid}`;
+    }
+
+    const newCurrencies = { ...existingCurrencies };
+    let count = 0;
+
+    checks.forEach(chk => {
+      const code = chk.value;
+      const rate = parseFloat(chk.dataset.rate);
+      newCurrencies[code] = rate;
+      count++;
+    });
+
+    await updateDoc(groupRef, { currencies: newCurrencies });
+    showToast(`${count}件の通貨を追加しました`);
+    setTimeout(() => location.href = `settings.html?g=${gid}`, 500);
   };
 }
