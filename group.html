@@ -2,45 +2,26 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Team Pay - 割り勘をもっとスマートに。</title>
+  <title>Team Pay - グループ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
-
-  <link rel="icon" href="logoimage.png" type="image/png">
-  <link rel="apple-touch-icon" href="logoimage.png">
-
-  <meta property="og:title" content="Team Pay">
-  <meta property="og:description" content="旅行やイベントの割り勘を、もっとスマートに。">
-  <meta property="og:image" content="https://splitbill-17422.web.app/logocut.jpg">
-  <meta property="og:type" content="website">
 </head>
 <body data-page="group">
-  <main class="container">
-    <div class="top-bar">
-      <div class="brand">
-        <a href="index.html" style="display: block;">
-          <!-- <img src="logocut.jpg" alt="Splitly" class="logo" /> -->
-        </a>
-        <div>
-          <a href="index.html" class="brand-link">
-            <div class="brand-title">Team Pay</div>
-          </a>
-          <div id="groupTitle" class="brand-caption"></div>
-        </div>
-      </div>
-
-      <button id="manageMembersBtn" class="secondary">参加者</button>
-      <button id="copyLinkBtn" class="secondary">リンクコピー</button>
+  <header class="fixed-header">
+    <a href="index.html" class="header-left">Team Pay</a>
+    <div class="header-center" id="groupTitle">読み込み中...</div>
+    <div class="header-right">
+      <button id="settingsBtn">⚙️</button>
     </div>
+  </header>
 
+  <main class="container">
     <section>
-        <h2>支出一覧</h2>
-        <input id="searchInput" type="text" placeholder="支出名で検索" />
-
-        <div id="loadingMsg" class="loading-spinner">読み込み中...</div>
-
-        <ul id="expenseList"></ul>
-        <p id="emptyMessage" class="muted" style="display:none;">まだ支出がありません。左下の「＋支出を追加」から登録してね。</p>
+      <div id="loadingMsg" class="loading-spinner" style="text-align:center; padding:20px;">読み込み中...</div>
+      <ul id="expenseList"></ul>
+      <p id="emptyMessage" class="muted" style="display:none; text-align:center; margin-top:40px;">
+        まだ支出がありません。<br>下のボタンから追加してね。
+      </p>
     </section>
 
     <div class="bottom-actions">

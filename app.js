@@ -2,20 +2,16 @@
 
 import { db, serverTimestamp } from "./firebase-config.js";
 import {
-  collection,
-  doc,
-  setDoc,
-  addDoc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  deleteDoc,       // ← 追加
-  updateDoc        // ← 後で編集にも使うのでついでに
+  collection, doc, setDoc, addDoc, getDoc, getDocs,
+  onSnapshot, deleteDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-function showToast(msg) {
+/* --- 共通ユーティリティ --- */
+
+// トースト表示 (type: 'success' | 'error')
+function showToast(msg, type = 'success') {
   const div = document.createElement('div');
-  div.className = 'toast show';
+  div.className = `toast ${type} show`;
   div.textContent = msg;
   document.body.appendChild(div);
   setTimeout(() => {
@@ -24,10 +20,9 @@ function showToast(msg) {
   }, 3000);
 }
 
-/* 共通：ランダムID生成 */
+// ランダムID生成
 function generateId(length = 12) {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let s = "";
   for (let i = 0; i < length; i++) {
     s += chars[Math.floor(Math.random() * chars.length)];
@@ -35,954 +30,651 @@ function generateId(length = 12) {
   return s;
 }
 
-// 最近使ったグループ一覧（ローカル履歴表示）
-const historyList = document.getElementById("groupHistoryList");
-if (historyList) {
-  const HISTORY_KEY = "splitbill_group_history";
-  const noHistoryMsg = document.getElementById("noHistoryMsg");
-  let history = [];
-  try {
-    history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-  } catch (_) {
-    history = [];
-  }
-
-  // メッセージの表示/非表示
-  if (noHistoryMsg) {
-    if (history.length === 0) {
-      noHistoryMsg.style.display = "block";
-    } else {
-      noHistoryMsg.style.display = "none";
-    }
-  }
-
-  historyList.innerHTML = "";
-  history.forEach((h) => {
-    const li = document.createElement("li");
-    li.className = "group-history-item";
-
-    const a = document.createElement("a");
-    a.href = h.url;        // クリックで group.html?g=... に遷移
-    a.textContent = h.name;
-
-    li.appendChild(a);
-    historyList.appendChild(li);
-  });
+// URLパラメータ取得
+function getGroupId() {
+  return new URLSearchParams(location.search).get("g");
 }
-/* ========== create.html（グループ作成＋メンバー追加） ========== */
+function getExpenseId() {
+  return new URLSearchParams(location.search).get("e");
+}
 
-const createFinalBtn = document.getElementById("createFinalBtn");
-if (createFinalBtn) {
-  const groupNameInput = document.getElementById("newGroupName");
-  const addTempMemberBtn = document.getElementById("addTempMemberBtn");
-  const newMemberNameInput = document.getElementById("newMemberName");
-  const tempMemberListEl = document.getElementById("tempMemberList");
-
-  const tempMembers = [];
-
-  function renderTempMembers() {
-    if (!tempMemberListEl) return;
-    tempMemberListEl.innerHTML = "";
-    tempMembers.forEach((name, index) => {
-      const li = document.createElement("li");
-      li.className = "member-item";
-
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = name;
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "削除";
-      delBtn.className = "secondary small";
-      delBtn.onclick = () => {
-        tempMembers.splice(index, 1);
-        renderTempMembers();
-      };
-
-      li.appendChild(nameSpan);
-      li.appendChild(delBtn);
-      tempMemberListEl.appendChild(li);
-    });
-  }
-
-  if (addTempMemberBtn && newMemberNameInput) {
-    addTempMemberBtn.onclick = () => {
-      const name = newMemberNameInput.value.trim();
-      if (!name) {
-        showToast("名前を入力してね");
-        return;
-      }
-      tempMembers.push(name);
-      newMemberNameInput.value = "";
-      renderTempMembers();
-    };
-  }
-
-  createFinalBtn.onclick = async () => {
-    const rawName = groupNameInput ? groupNameInput.value.trim() : "";
-    const groupName = rawName || "割り勘グループ";
-    const groupId = generateId();
-
-    const groupRef = doc(db, "groups", groupId);
-    await setDoc(groupRef, {
-      name: groupName,
-      createdAt: serverTimestamp(),
-    });
-
-    // メンバーも Firestore に保存
-    const membersRef = collection(groupRef, "members");
-    for (const name of tempMembers) {
-      const memberId = generateId();
-      await setDoc(doc(membersRef, memberId), {
-        name,
-        createdAt: serverTimestamp(),
-      });
-    }
-
-    // group.html の URL を作成
-    const base =
-      location.origin + location.pathname.replace(/create\.html$/, "");
-    const groupUrl = `${base}group.html?g=${groupId}`;
-
-    // ローカル履歴に保存
+// クリップボードコピー (シンプル版)
+async function copyToClipboard(text, successMsg = "コピーしました！") {
+  if (navigator.clipboard && window.isSecureContext) {
     try {
-      const HISTORY_KEY = "splitbill_group_history";
-      const raw = localStorage.getItem(HISTORY_KEY) || "[]";
-      const history = JSON.parse(raw);
-      history.unshift({
-        id: groupId,
-        name: groupName,
-        url: groupUrl,
-        createdAt: Date.now(),
-      });
-      const limited = history.slice(0, 20);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(limited));
-    } catch (_) {
-      // localStorage が使えない場合は無視
+      await navigator.clipboard.writeText(text);
+      showToast(successMsg);
+    } catch (e) {
+      prompt("コピーしてください:", text);
     }
-
-    // 作成完了画面へ遷移
-    const createdUrl = `${base}created.html?g=${groupId}`;
-    location.href = createdUrl;
-  };
-}
-
-/* ========== created.html（グループ作成完了） ========== */
-
-const createdGroupUrlEl = document.getElementById("createdGroupUrl");
-if (createdGroupUrlEl) {
-  const params = new URLSearchParams(location.search);
-  const groupId = params.get("g");
-  const copyUrlBtn = document.getElementById("copyUrlBtn");
-  const goGroupBtn = document.getElementById("goGroupBtn");
-
-  if (!groupId) {
-    createdGroupUrlEl.textContent = "グループIDが見つかりませんでした";
-    if (copyUrlBtn) copyUrlBtn.disabled = true;
-    if (goGroupBtn) goGroupBtn.disabled = true;
   } else {
-    const base =
-      location.origin + location.pathname.replace(/created\.html$/, "");
-    const groupUrl = `${base}group.html?g=${groupId}`;
-
-    createdGroupUrlEl.textContent = groupUrl;
-
-    if (copyUrlBtn) {
-      copyUrlBtn.onclick = async () => {
-        // まずは Web Share API を試す
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              title: "Team Pay",
-              text: "割り勘グループに参加してね！",
-              url: groupUrl,
-            });
-            return; // 共有シートを開けたらここで終了
-          } catch (err) {
-            // ユーザーキャンセルなどは無視して、下のコピー処理へ
-          }
-        }
-
-        // Web Share が使えない or エラー時はクリップボードコピーにフォールバック
-        if (navigator.clipboard && window.isSecureContext) {
-          try {
-            await navigator.clipboard.writeText(groupUrl);
-            showToast("グループのリンクをコピーしました 🎉");
-          } catch (e) {
-            window.prompt("このリンクをコピーしてください：", groupUrl);
-          }
-        } else {
-          window.prompt("このリンクをコピーしてください：", groupUrl);
-        }
-      };
-    }
-
-    if (goGroupBtn) {
-      goGroupBtn.onclick = () => {
-        location.href = groupUrl;
-      };
-    }
+    prompt("コピーしてください:", text);
   }
 }
 
-/* 共通：カテゴリ→アイコン＋ラベル */
-function getCategoryInfo(category) {
-  switch (category) {
-    case "food":
-      return { icon: "🍚", label: "飲食" };
-    case "transport":
-      return { icon: "🚗", label: "交通" };
-    case "lodging":
-      return { icon: "🏨", label: "宿泊" };
-    case "activity":
-      return { icon: "🎡", label: "アクティビティ" };
-    default:
-      return { icon: "💰", label: "その他" };
-  }
+// カテゴリ定義
+const CATEGORIES = [
+  { value: "food", label: "飲食", icon: "🍚" },
+  { value: "alcohol", label: "飲み会", icon: "🍻" },
+  { value: "transport", label: "交通", icon: "🚗" },
+  { value: "lodging", label: "宿泊", icon: "🏨" },
+  { value: "activity", label: "遊び", icon: "🎡" },
+  { value: "shopping", label: "買い物", icon: "🛒" },
+  { value: "other", label: "その他", icon: "💰" }
+];
+
+function getCategoryInfo(val) {
+  return CATEGORIES.find(c => c.value === val) || CATEGORIES[CATEGORIES.length - 1];
 }
 
-/* 共通：クエリパラメータから groupId 取得 */
-function getGroupIdFromQuery() {
-  const params = new URLSearchParams(location.search);
-  return params.get("g");
-}
+/* --- ページ別ロジック --- */
 
-/* ========== index.html（グループ作成） ========== */
-
-const createGroupBtn = document.getElementById("createGroupBtn");
-if (createGroupBtn) {
-  createGroupBtn.addEventListener("click", async () => {
-    const nameInput = document.getElementById("groupName");
-    const groupName = nameInput.value.trim() || "割り勘グループ";
-    const groupId = generateId();
-
-    const groupRef = doc(db, "groups", groupId);
-    await setDoc(groupRef, {
-      name: groupName,
-      createdAt: serverTimestamp(),
-    });
-
-    const base =
-      location.origin + location.pathname.replace(/index\.html$/, "");
-    const url = `${base}group.html?g=${groupId}`;
-
-    // ローカルに履歴保存
-    try {
-      const HISTORY_KEY = "splitbill_group_history";
-      const raw = localStorage.getItem(HISTORY_KEY) || "[]";
-      const history = JSON.parse(raw);
-      history.unshift({
-        id: groupId,
-        name: groupName,
-        url,
-        createdAt: Date.now(),
-      });
-      const limited = history.slice(0, 20); // 最大20件くらいに制限
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(limited));
-    } catch (_) {
-      // localStorage が使えない場合は無視
-    }
-
-    const result = document.getElementById("result");
-    result.textContent = `このURLを共有： ${url}`;
-
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).catch(() => {});
-    }
-  });
-}
-
-// 「はじめる」ボタンで作成セクションへスムーズスクロール
+// ■ index.html (LP)
 const startBtn = document.getElementById("startBtn");
 if (startBtn) {
   startBtn.onclick = () => {
-    const sec = document.getElementById("createSection");
-    sec?.scrollIntoView({ behavior: "smooth" });
+    location.href = "create.html";
+  };
+  
+  // 履歴表示
+  const historyList = document.getElementById("groupHistoryList");
+  if (historyList) {
+    let history = [];
+    try {
+      history = JSON.parse(localStorage.getItem("teampay_history") || "[]");
+    } catch (_) {}
+
+    if (history.length > 0) {
+      historyList.innerHTML = "";
+      history.forEach(h => {
+        const li = document.createElement("li");
+        li.className = "group-history-item";
+        li.innerHTML = `<a href="group.html?g=${h.id}"><b>${h.name}</b></a>`;
+        historyList.appendChild(li);
+      });
+      document.getElementById("noHistoryMsg").style.display = "none";
+    }
+  }
+}
+
+// ■ create.html (グループ作成)
+const createFinalBtn = document.getElementById("createFinalBtn");
+if (createFinalBtn) {
+  const tempMembers = [];
+  const tempUl = document.getElementById("tempMemberList");
+  const addMemBtn = document.getElementById("addTempMemberBtn");
+  const memInput = document.getElementById("newMemberName");
+
+  function renderTemp() {
+    tempUl.innerHTML = "";
+    tempMembers.forEach((name, i) => {
+      const li = document.createElement("li");
+      li.className = "member-item";
+      li.innerHTML = `<span>${name}</span><button class="secondary small" data-idx="${i}">削除</button>`;
+      tempUl.appendChild(li);
+    });
+    tempUl.querySelectorAll("button").forEach(b => {
+      b.onclick = (e) => {
+        tempMembers.splice(e.target.dataset.idx, 1);
+        renderTemp();
+      };
+    });
+  }
+
+  addMemBtn.onclick = () => {
+    const name = memInput.value.trim();
+    if (!name) return showToast("名前を入力してください", "error");
+    if (tempMembers.includes(name)) return showToast("同じ名前の人がいます", "error");
+    tempMembers.push(name);
+    memInput.value = "";
+    renderTemp();
+  };
+
+  createFinalBtn.onclick = async () => {
+    const groupName = document.getElementById("newGroupName").value.trim();
+    if (!groupName) return showToast("グループ名を入力してください", "error");
+    if (tempMembers.length === 0) return showToast("メンバーを1人以上追加してください", "error");
+
+    const gid = generateId();
+    const groupRef = doc(db, "groups", gid);
+    
+    // デフォルト通貨設定 (JPY, レート1)
+    await setDoc(groupRef, {
+      name: groupName,
+      createdAt: serverTimestamp(),
+      currencies: { "JPY": 1 } // ベース通貨
+    });
+
+    const memRef = collection(groupRef, "members");
+    for (const name of tempMembers) {
+      await setDoc(doc(memRef, generateId()), { name, createdAt: serverTimestamp() });
+    }
+
+    // 履歴保存
+    try {
+      const hist = JSON.parse(localStorage.getItem("teampay_history") || "[]");
+      hist.unshift({ id: gid, name: groupName });
+      localStorage.setItem("teampay_history", JSON.stringify(hist.slice(0, 10)));
+    } catch (_) {}
+
+    location.href = `created.html?g=${gid}`;
   };
 }
 
-/* ========== group.html（支出一覧画面） ========== */
+// ■ created.html
+const createdUrlEl = document.getElementById("createdGroupUrl");
+if (createdUrlEl) {
+  const gid = getGroupId();
+  const url = `${location.origin}${location.pathname.replace("created.html", "group.html")}?g=${gid}`;
+  createdUrlEl.textContent = url;
+  document.getElementById("copyUrlBtn").onclick = () => copyToClipboard(url);
+  document.getElementById("goGroupBtn").onclick = () => location.href = url;
+}
 
-const expenseListOnGroup = document.getElementById("expenseList");
-if (expenseListOnGroup) {
-  const loadingMsg = document.getElementById("loadingMsg");
-  const groupId = getGroupIdFromQuery();
-  const groupTitleEl = document.getElementById("groupTitle");
-  const emptyMessageEl = document.getElementById("emptyMessage");
-  const goAddBtn = document.getElementById("goAddBtn");
-  const goSettleBtn = document.getElementById("goSettleBtn");
-  const manageMembersBtn = document.getElementById("manageMembersBtn");
-  const copyLinkBtn = document.getElementById("copyLinkBtn");
-  const searchInput = document.getElementById("searchInput");
-  let allExpenses = [];
+// ■ group.html (ダッシュボード)
+const groupTitleEl = document.getElementById("groupTitle");
+if (groupTitleEl && document.getElementById("expenseList")) {
+  const gid = getGroupId();
+  if (!gid) location.href = "index.html";
 
-  if (manageMembersBtn && groupId) {
-    manageMembersBtn.onclick = () => {
-      location.href = `members.html?g=${groupId}`;
-    };
-  }
+  // 設定ボタンへ遷移
+  document.getElementById("settingsBtn").onclick = () => location.href = `settings.html?g=${gid}`;
+  document.getElementById("goAddBtn").onclick = () => location.href = `add.html?g=${gid}`;
+  document.getElementById("goSettleBtn").onclick = () => location.href = `settle.html?g=${gid}`;
 
-  if (groupId && copyLinkBtn) {
-    copyLinkBtn.onclick = async () => {
-      const url = window.location.href;
-
-      // まずは Web Share API（共有シート）が使えるか試す
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "Team Pay",
-            text: "割り勘グループに参加してね！",
-            url,
-          });
-          // シェア完了 or ユーザーキャンセル時は特に何もしない
-          return;
-        } catch (err) {
-          // ユーザーキャンセルやエラー時は下のクリップボード処理へフォールバック
-        }
-      }
-
-      // クリップボード API が使える場合（HTTPS or localhost など）
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(url);
-            showToast("グループのリンクをコピーしました 🎉");
-        } catch (e) {
-          // 失敗したときは手動コピーのフォールバック
-          window.prompt("このリンクをコピーしてください：", url);
-        }
-      } else {
-        // 古いブラウザ / 非対応環境用フォールバック
-        window.prompt("このリンクをコピーしてください：", url);
-      }
-    };
-  }
-
-  if (!groupId) {
-    if (groupTitleEl) groupTitleEl.textContent = "グループIDがありません";
-  } else {
-    const groupRef = doc(db, "groups", groupId);
-
-    // グループ名
-    (async () => {
-      const snap = await getDoc(groupRef);
-      if (snap.exists() && groupTitleEl) {
-        groupTitleEl.textContent = snap.data().name || "SplitBill";
-      }
-    })();
-
-    // ページ遷移ボタン
-    if (goAddBtn) {
-      goAddBtn.onclick = () => {
-        location.href = `add.html?g=${groupId}`;
-      };
+  // グループ情報購読
+  onSnapshot(doc(db, "groups", gid), (docSnap) => {
+    if (docSnap.exists()) {
+      groupTitleEl.textContent = docSnap.data().name;
     }
-    if (goSettleBtn) {
-      goSettleBtn.onclick = () => {
-        location.href = `settle.html?g=${groupId}`;
-      };
-    }
+  });
 
-    const expensesRef = collection(groupRef, "expenses");
+  // メンバー情報取得
+  let membersMap = {};
+  getDocs(collection(doc(db, "groups", gid), "members")).then(snap => {
+    snap.forEach(d => membersMap[d.id] = d.data().name);
+  });
 
-    // 支出一覧描画関数（検索対応）
-    function renderExpenses(filterText, expenses, members) {
-      expenseListOnGroup.innerHTML = "";
+  // 支出一覧購読
+  onSnapshot(collection(doc(db, "groups", gid), "expenses"), (snap) => {
+    const list = document.getElementById("expenseList");
+    const expenses = [];
+    snap.forEach(d => expenses.push({ id: d.id, ...d.data() }));
 
-      // 読み込み完了したらローディングを消す
-      if (loadingMsg) loadingMsg.style.display = "none";
+    // 日付順、作成日順にソート
+    expenses.sort((a, b) => {
+      if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
+      return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    });
 
-      const text = (filterText || "").toLowerCase();
-
-      const filtered = expenses.filter((e) => {
-        if (!text) return true;
-        const title = (e.title || "").toLowerCase();
-        return title.includes(text);
-      });
-
-      if (filtered.length === 0) {
-        if (emptyMessageEl) emptyMessageEl.style.display = "block";
-        return;
-      } else {
-        if (emptyMessageEl) emptyMessageEl.style.display = "none";
-      }
-
-      for (const e of filtered) {
+    list.innerHTML = "";
+    if (expenses.length === 0) {
+      document.getElementById("emptyMessage").style.display = "block";
+    } else {
+      document.getElementById("emptyMessage").style.display = "none";
+      expenses.forEach(e => {
         const li = document.createElement("li");
         li.className = "expense-card";
-        li.style.cursor = "pointer"; // li全体がクリック可能であることを示す
-        li.onclick = () => {
-          location.href = `edit.html?g=${groupId}&e=${e.id}`;
-        };
+        li.onclick = () => location.href = `edit.html?g=${gid}&e=${e.id}`;
+        
+        const cat = getCategoryInfo(e.category);
+        const payer = membersMap[e.payerId] || "不明";
+        
+        // 通貨表示 (ベース通貨換算があればそちらを表示、なければ元の通貨)
+        const displayAmount = e.currency && e.currency !== 'JPY' 
+          ? `${e.originalAmount}${e.currency} (${Math.round(e.amount).toLocaleString()}円)`
+          : `${Math.round(e.amount).toLocaleString()}円`;
 
-        const { icon, label } = getCategoryInfo(e.category);
-
-        const iconSpan = document.createElement("span");
-        iconSpan.className = "expense-icon";
-        iconSpan.textContent = icon;
-
-        const mainDiv = document.createElement("div");
-        mainDiv.className = "expense-main";
-
-        const titleRow = document.createElement("div");
-        titleRow.className = "expense-title-row";
-
-        const titleSpan = document.createElement("span");
-        titleSpan.textContent = e.title || "支出";
-
-        const amountSpan = document.createElement("span");
-        amountSpan.className = "expense-amount";
-        amountSpan.textContent = `${Number(e.amount).toLocaleString()}円`;
-
-        titleRow.appendChild(titleSpan);
-        titleRow.appendChild(amountSpan);
-
-        const meta = document.createElement("div");
-        meta.className = "expense-meta";
-        const payerName = members[e.payerId] || "不明";
-        const count = (e.participantIds || []).length;
-        meta.textContent = `${label}・${payerName}が支払い・${count}人分`;
-
-        mainDiv.appendChild(titleRow);
-        mainDiv.appendChild(meta);
-
-
-        li.appendChild(iconSpan);
-        li.appendChild(mainDiv);
-
-        expenseListOnGroup.appendChild(li);
-      }
+        li.innerHTML = `
+          <div class="expense-icon">${cat.icon}</div>
+          <div class="expense-main">
+            <div class="expense-top">
+              <span>${e.title}</span>
+              <span>${displayAmount}</span>
+            </div>
+            <div class="expense-meta">
+              <span class="expense-date">${e.date || ""}</span>
+              ${payer}が支払い • ${e.participantIds.length}人分
+            </div>
+          </div>
+        `;
+        list.appendChild(li);
+      });
     }
-
-    // 支出一覧＋カテゴリアイコン（リアルタイム）
-    onSnapshot(expensesRef, async (snap) => {
-      const expenses = [];
-      snap.forEach((docSnap) => {
-        const e = { id: docSnap.id, ...docSnap.data() };
-        expenses.push(e);
-      });
-
-      // メンバー名（支払い者表示用）
-      const membersSnap = await getDocs(collection(groupRef, "members"));
-      const members = {};
-      membersSnap.forEach((m) => {
-        members[m.id] = m.data().name;
-      });
-
-      // createdAt 降順
-      expenses.sort((a, b) => {
-        const ta = a.createdAt?.toMillis?.() || 0;
-        const tb = b.createdAt?.toMillis?.() || 0;
-        return tb - ta;
-      });
-
-      allExpenses = expenses;
-      renderExpenses(searchInput?.value, allExpenses, members);
-
-      if (searchInput && !searchInput.dataset.bound) {
-        searchInput.dataset.bound = "true";
-        searchInput.addEventListener("input", () => {
-          renderExpenses(searchInput.value, allExpenses, members);
-        });
-      }
-    });
-  }
+    document.getElementById("loadingMsg").style.display = "none";
+  });
 }
 
-/* ========== add.html（支出追加＋メンバー追加） ========== */
+// ■ add.html / edit.html (共通処理が多いのでまとめる)
+const isEdit = document.body.dataset.page === "edit";
+const saveBtn = document.getElementById(isEdit ? "saveEditBtn" : "addExpenseBtn");
 
-const addExpenseBtn = document.getElementById("addExpenseBtn");
-if (addExpenseBtn) {
-  const groupId = getGroupIdFromQuery();
-  const groupTitleEl = document.getElementById("groupTitle");
-  const backToGroupBtn = document.getElementById("backToGroupBtn");
+if (saveBtn) {
+  const gid = getGroupId();
+  const eid = getExpenseId();
+  const groupRef = doc(db, "groups", gid);
+  
+  // UI要素
+  const titleInput = document.getElementById(isEdit ? "editExpenseTitle" : "expenseTitle");
+  const amountInput = document.getElementById(isEdit ? "editExpenseAmount" : "expenseAmount");
+  const dateInput = document.getElementById("expenseDate");
+  const catSelect = document.getElementById(isEdit ? "editCategorySelect" : "categorySelect");
+  const payerSelect = document.getElementById(isEdit ? "editPayerSelect" : "payerSelect");
+  const currencySelect = document.getElementById("currencySelect");
+  const chipContainer = document.getElementById(isEdit ? "editParticipantCheckboxes" : "participantCheckboxes");
+  const selectAllBtn = document.getElementById("selectAllBtn");
 
-  if (!groupId) {
-    if (groupTitleEl) groupTitleEl.textContent = "グループIDがありません";
-  } else {
-    const groupRef = doc(db, "groups", groupId);
-    const membersRef = collection(groupRef, "members");
-
-    // タイトル
-    (async () => {
-      const snap = await getDoc(groupRef);
-      if (snap.exists() && groupTitleEl) {
-        groupTitleEl.textContent = `${snap.data().name} に支出を追加`;
-      }
-    })();
-
-    if (backToGroupBtn) {
-      backToGroupBtn.onclick = () => {
-        location.href = `group.html?g=${groupId}`;
-      };
-    }
-
-    const payerSelect = document.getElementById("payerSelect");
-    const participantCheckboxes = document.getElementById("participantCheckboxes");
-
-    // メンバー一覧取得 → 支払い者 select ＋ 参加者チェックボックスを更新
-    if (payerSelect && participantCheckboxes) {
-      onSnapshot(membersRef, (snap) => {
-        payerSelect.innerHTML = "";
-        participantCheckboxes.innerHTML = "";
-
-        snap.forEach((docSnap) => {
-          const m = { id: docSnap.id, ...docSnap.data() };
-
-          // 支払い者 select
-          const opt = document.createElement("option");
-          opt.value = m.id;
-          opt.textContent = m.name;
-          payerSelect.appendChild(opt);
-
-          // 参加者 checkbox
-          const label = document.createElement("label");
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.value = m.id;
-          cb.checked = true;
-          label.appendChild(cb);
-          label.appendChild(document.createTextNode(m.name));
-          participantCheckboxes.appendChild(label);
-        });
-      });
-    }
-
-    // 支出追加
-    addExpenseBtn.addEventListener("click", async () => {
-      const titleInput = document.getElementById("expenseTitle");
-      const amountInput = document.getElementById("expenseAmount");
-      const categorySelect = document.getElementById("categorySelect");
-
-      const title = titleInput.value.trim() || "支出";
-      const amount = Number(amountInput.value);
-      const payerId = payerSelect.value;
-      const category = categorySelect.value || "other";
-
-      // 金額のバリデーション
-      if (!amount || isNaN(amount)) {
-        showToast("金額を入力してね");
-        return;
-      }
-      if (amount <= 0) {
-        showToast("金額は1円以上にしてね");
-        return;
-      }
-      if (amount < 0 || amount > 10000000) {
-        showToast("金額は1円以上1,000万円以下で入力してね");
-        return;
-      }
-      if (!payerId) {
-        showToast("支払った人を選んでね");
-        return;
-      }
-
-      const participantIds = Array.from(
-        participantCheckboxes.querySelectorAll("input[type=checkbox]:checked")
-      ).map((cb) => cb.value);
-
-      if (participantIds.length === 0) {
-        showToast("少なくとも1人は選んでね");
-        return;
-      }
-
-      await addDoc(collection(groupRef, "expenses"), {
-        title,
-        amount,
-        payerId,
-        participantIds,
-        category,
-        createdAt: serverTimestamp(),
-      });
-
-      titleInput.value = "";
-      amountInput.value = "";
-      showToast("支出を追加しました！");
-    });
+  // デフォルト日付（今日）
+  if (!isEdit && dateInput) {
+    dateInput.value = new Date().toISOString().split('T')[0];
   }
+
+  // カテゴリ生成
+  catSelect.innerHTML = "";
+  CATEGORIES.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.value;
+    opt.textContent = c.icon + " " + c.label;
+    catSelect.appendChild(opt);
+  });
+
+  // 初期データロード（グループ通貨設定、メンバー、(編集時)既存データ）
+  Promise.all([
+    getDoc(groupRef),
+    getDocs(collection(groupRef, "members")),
+    isEdit ? getDoc(doc(groupRef, "expenses", eid)) : Promise.resolve(null)
+  ]).then(([gSnap, mSnap, eSnap]) => {
+    const gData = gSnap.data();
+    const currencies = gData.currencies || { "JPY": 1 };
+
+    // 通貨セレクト生成
+    currencySelect.innerHTML = "";
+    Object.keys(currencies).forEach(code => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = code;
+      opt.dataset.rate = currencies[code];
+      currencySelect.appendChild(opt);
+    });
+
+    // メンバー生成
+    payerSelect.innerHTML = "";
+    chipContainer.innerHTML = "";
+    const allMemberIds = [];
+    mSnap.forEach(m => {
+      const id = m.id;
+      const name = m.data().name;
+      allMemberIds.push(id);
+
+      // 支払い者
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = name;
+      payerSelect.appendChild(opt);
+
+      // 参加者チップ
+      const label = document.createElement("label");
+      label.className = "chip-label";
+      label.innerHTML = `<input type="checkbox" value="${id}" checked> ${name}`;
+      chipContainer.appendChild(label);
+    });
+
+    // 全員選択ボタン
+    selectAllBtn.onclick = () => {
+      const cbs = chipContainer.querySelectorAll("input");
+      // 全員チェック済みなら全部外す、そうでなければ全部つける
+      const allChecked = Array.from(cbs).every(c => c.checked);
+      cbs.forEach(c => c.checked = !allChecked);
+    };
+
+    // 編集時の値セット
+    if (isEdit && eSnap.exists()) {
+      const d = eSnap.data();
+      titleInput.value = d.title;
+      // 元通貨の金額があればそれを、なければ保存されている金額(JPY)を
+      amountInput.value = d.originalAmount || d.amount; 
+      dateInput.value = d.date || "";
+      catSelect.value = d.category;
+      payerSelect.value = d.payerId;
+      if (d.currency) currencySelect.value = d.currency;
+
+      const pSet = new Set(d.participantIds);
+      chipContainer.querySelectorAll("input").forEach(cb => {
+        cb.checked = pSet.has(cb.value);
+      });
+    }
+  });
+
+  // 保存処理
+  saveBtn.onclick = async () => {
+    const title = titleInput.value.trim();
+    const rawAmount = parseFloat(amountInput.value);
+    const payerId = payerSelect.value;
+    const currency = currencySelect.value;
+    const rate = parseFloat(currencySelect.options[currencySelect.selectedIndex].dataset.rate);
+    const pIds = Array.from(chipContainer.querySelectorAll("input:checked")).map(c => c.value);
+    const dateVal = dateInput.value;
+
+    // バリデーション
+    if (!title) return showToast("タイトルを入力してください", "error");
+    if (!rawAmount || rawAmount <= 0) return showToast("金額を正しく入力してください", "error");
+    if (!payerId) return showToast("支払った人を選択してください", "error");
+    if (pIds.length === 0) return showToast("誰の分か（参加者）を選択してください", "error");
+    if (!dateVal) return showToast("日付を選択してください", "error");
+
+    // ベース通貨(JPY)への換算
+    const amountInBase = rawAmount * rate;
+
+    const data = {
+      title,
+      amount: amountInBase, // 集計用
+      originalAmount: rawAmount, // 表示用
+      currency,
+      rate, // その時のレートを保存
+      category: catSelect.value,
+      payerId,
+      participantIds: pIds,
+      date: dateVal,
+      updatedAt: serverTimestamp()
+    };
+
+    if (!isEdit) data.createdAt = serverTimestamp();
+
+    try {
+      if (isEdit) {
+        await updateDoc(doc(groupRef, "expenses", eid), data);
+        showToast("更新しました！");
+      } else {
+        await addDoc(collection(groupRef, "expenses"), data);
+        showToast("追加しました！");
+      }
+      setTimeout(() => location.href = `group.html?g=${gid}`, 500);
+    } catch (e) {
+      showToast("エラーが発生しました", "error");
+    }
+  };
+
+  // 削除（編集時のみ）
+  const delBtn = document.getElementById("deleteExpenseBtn");
+  if (delBtn) {
+    delBtn.onclick = async () => {
+      if (confirm("本当に削除しますか？")) {
+        await deleteDoc(doc(groupRef, "expenses", eid));
+        location.href = `group.html?g=${gid}`;
+      }
+    };
+  }
+  
+  // 戻るボタン
+  document.getElementById("backToGroupBtn").onclick = () => location.href = `group.html?g=${gid}`;
 }
 
-/* ========== settle.html（精算画面） ========== */
+// ■ settle.html (精算＆支出タブ)
+const settleBody = document.body.dataset.page === "settle";
+if (settleBody) {
+  const gid = getGroupId();
+  const groupRef = doc(db, "groups", gid);
+  
+  // タブ切り替え
+  const tabPay = document.getElementById("tabPayment");
+  const tabSpend = document.getElementById("tabSpending");
+  const sectionPay = document.getElementById("sectionPayment");
+  const sectionSpend = document.getElementById("sectionSpending");
 
-const copyForLineBtn = document.getElementById("copyForLineBtn");
-if (copyForLineBtn) {
-  const groupId = getGroupIdFromQuery();
-  const groupTitleEl = document.getElementById("groupTitle");
-  const balancesEl = document.getElementById("balances");
-  const transfersEl = document.getElementById("transfers");
-  const backToGroupBtn = document.getElementById("backToGroupBtn");
+  tabPay.onclick = () => {
+    tabPay.classList.add("active");
+    tabSpend.classList.remove("active");
+    sectionPay.style.display = "block";
+    sectionSpend.style.display = "none";
+  };
+  tabSpend.onclick = () => {
+    tabSpend.classList.add("active");
+    tabPay.classList.remove("active");
+    sectionPay.style.display = "none";
+    sectionSpend.style.display = "block";
+  };
 
-  if (!groupId) {
-    if (groupTitleEl) groupTitleEl.textContent = "グループIDがありません";
-  } else {
-    const groupRef = doc(db, "groups", groupId);
+  document.getElementById("backToGroupBtn").onclick = () => location.href = `group.html?g=${gid}`;
 
-    (async () => {
-      const snap = await getDoc(groupRef);
-      if (snap.exists() && groupTitleEl) {
-        groupTitleEl.textContent = `${snap.data().name} の精算`;
-      }
-    })();
+  // 計算ロジック
+  Promise.all([
+    getDocs(collection(groupRef, "members")),
+    getDocs(collection(groupRef, "expenses"))
+  ]).then(([mSnap, eSnap]) => {
+    const members = {};
+    mSnap.forEach(m => members[m.id] = m.data().name);
 
-    if (backToGroupBtn) {
-      backToGroupBtn.onclick = () => {
-        location.href = `group.html?g=${groupId}`;
-      };
-    }
+    const net = {}; // 精算用バランス
+    const spending = {}; // 個人の支出合計（自分が消費した分）
+    Object.keys(members).forEach(id => {
+      net[id] = 0;
+      spending[id] = 0;
+    });
 
-    const expensesRef = collection(groupRef, "expenses");
+    eSnap.forEach(docSnap => {
+      const e = docSnap.data();
+      if (!e.participantIds || e.participantIds.length === 0) return;
+      
+      const share = e.amount / e.participantIds.length;
 
-    onSnapshot(expensesRef, async (snap) => {
-      const expenses = [];
-      snap.forEach((docSnap) => {
-        expenses.push({ id: docSnap.id, ...docSnap.data() });
-      });
+      // 立て替え払いへの加算
+      if (net[e.payerId] !== undefined) net[e.payerId] += e.amount;
 
-      const memberSnap = await getDocs(collection(groupRef, "members"));
-      const members = {};
-      memberSnap.forEach((m) => {
-        members[m.id] = m.data().name;
-      });
-
-      const net = {};
-      Object.keys(members).forEach((id) => (net[id] = 0));
-
-      for (const e of expenses) {
-        if (!e.participantIds || e.participantIds.length === 0) continue;
-        const share = e.amount / e.participantIds.length;
-
-        if (net[e.payerId] === undefined) net[e.payerId] = 0;
-        net[e.payerId] += e.amount;
-
-        for (const pid of e.participantIds) {
-          if (net[pid] === undefined) net[pid] = 0;
+      // 参加者の消費加算 & 負債加算
+      e.participantIds.forEach(pid => {
+        if (members[pid]) {
+          spending[pid] += share;
           net[pid] -= share;
         }
+      });
+    });
+
+    // --- 支出タブ表示 ---
+    const spendList = document.getElementById("spendingList");
+    let totalEventCost = 0;
+    Object.entries(spending).sort((a, b) => b[1] - a[1]).forEach(([id, amount]) => {
+      const li = document.createElement("li");
+      li.className = "expense-card"; // スタイル流用
+      li.style.cursor = "default";
+      li.innerHTML = `
+        <div class="expense-main">
+          <div class="expense-top">
+            <span>${members[id]}</span>
+            <span>${Math.round(amount).toLocaleString()}円</span>
+          </div>
+        </div>
+      `;
+      spendList.appendChild(li);
+      totalEventCost += amount;
+    });
+    // 合計表示
+    const totalDiv = document.createElement("div");
+    totalDiv.style.textAlign = "right";
+    totalDiv.style.fontWeight = "bold";
+    totalDiv.style.marginTop = "10px";
+    totalDiv.textContent = `合計: ${Math.round(totalEventCost).toLocaleString()}円`;
+    sectionSpend.appendChild(totalDiv);
+
+
+    // --- 支払いタブ（精算）表示 ---
+    const transferDiv = document.getElementById("transfers");
+    const creditors = [];
+    const debtors = [];
+
+    Object.entries(net).forEach(([id, val]) => {
+      const v = Math.round(val);
+      if (v > 0) creditors.push({ id, amount: v });
+      if (v < 0) debtors.push({ id, amount: v }); // 負の値
+    });
+
+    creditors.sort((a, b) => b.amount - a.amount); // 受け取り多い順
+    debtors.sort((a, b) => a.amount - b.amount);   // 支払い多い順（マイナスの絶対値が大きい順）
+
+    const transfers = [];
+    let i = 0, j = 0;
+    while (i < debtors.length && j < creditors.length) {
+      const d = debtors[i];
+      const c = creditors[j];
+      const pay = Math.min(-d.amount, c.amount); // 返せる額か、受け取る額の小さい方
+
+      if (pay > 0) {
+        transfers.push({ from: d.id, to: c.id, amount: pay });
       }
 
-      // 各自の残高
-      balancesEl.innerHTML = "";
-      const ulB = document.createElement("ul");
-      for (const id in net) {
+      d.amount += pay;
+      c.amount -= pay;
+
+      if (Math.abs(d.amount) < 1) i++;
+      if (c.amount < 1) j++;
+    }
+
+    transferDiv.innerHTML = "";
+    let copyText = "【Team Pay 精算リスト】\n\n";
+
+    if (transfers.length === 0) {
+      transferDiv.innerHTML = "<p class='muted'>精算の必要はありません 🎉</p>";
+      copyText += "精算済みです！";
+    } else {
+      const ul = document.createElement("ul");
+      transfers.forEach(t => {
         const li = document.createElement("li");
-        const yen = Math.round(net[id]);
-        const name = members[id] || "(不明)";
-        if (yen > 0) {
-          li.textContent = `${name}： +${yen}円（受け取る）`;
-        } else if (yen < 0) {
-          li.textContent = `${name}： ${yen}円（支払う）`;
-        } else {
-          li.textContent = `${name}： 0円`;
-        }
-        ulB.appendChild(li);
-      }
-      balancesEl.appendChild(ulB);
+        li.className = "expense-card";
+        li.style.cursor = "default";
+        li.innerHTML = `
+          <div class="expense-main">
+            <div class="expense-top">
+              <span>${members[t.from]} <span style="font-size:12px; color:#666;">→</span> ${members[t.to]}</span>
+              <span class="text-red">${t.amount.toLocaleString()}円</span>
+            </div>
+            <div class="expense-meta">支払ってください</div>
+          </div>
+        `;
+        ul.appendChild(li);
+        copyText += `${members[t.from]} → ${members[t.to]}： ${t.amount.toLocaleString()}円\n`;
+      });
+      transferDiv.appendChild(ul);
+    }
 
-      // 支払い組み合わせ
-      const creditors = [];
-      const debtors = [];
-      for (const id in net) {
-        const yen = Math.round(net[id]);
-        if (yen > 0) creditors.push({ id, amount: yen });
-        if (yen < 0) debtors.push({ id, amount: yen });
-      }
-      creditors.sort((a, b) => b.amount - a.amount);
-      debtors.sort((a, b) => a.amount - b.amount);
+    // メッセージ共有
+    document.getElementById("copyForLineBtn").onclick = () => copyToClipboard(copyText, "精算結果をコピーしました！");
+  });
+}
 
-      const transferList = [];
-      let i = 0,
-        j = 0;
-      while (i < debtors.length && j < creditors.length) {
-        const d = debtors[i];
-        const c = creditors[j];
-        const pay = Math.min(-d.amount, c.amount);
-        transferList.push({
-          from: d.id,
-          to: c.id,
-          amount: pay,
-        });
-        d.amount += pay;
-        c.amount -= pay;
-        if (d.amount === 0) i++;
-        if (c.amount === 0) j++;
-      }
+// ■ settings.html (設定画面)
+const settingsBody = document.body.dataset.page === "settings";
+if (settingsBody) {
+  const gid = getGroupId();
+  const groupRef = doc(db, "groups", gid);
 
-      transfersEl.innerHTML = "";
-      const ulT = document.createElement("ul");
-      if (transferList.length === 0) {
+  document.getElementById("backToGroupBtn").onclick = () => location.href = `group.html?g=${gid}`;
+
+  // 初期ロード
+  getDoc(groupRef).then(snap => {
+    const data = snap.data();
+    document.getElementById("groupNameInput").value = data.name;
+    
+    // 通貨リスト
+    renderCurrencies(data.currencies || { "JPY": 1 });
+  });
+
+  // グループ名変更
+  document.getElementById("updateGroupNameBtn").onclick = async () => {
+    const newName = document.getElementById("groupNameInput").value.trim();
+    if (!newName) return showToast("グループ名を入力してください", "error");
+    await updateDoc(groupRef, { name: newName });
+    showToast("グループ名を更新しました");
+  };
+
+  // 招待リンクコピー
+  document.getElementById("copyInviteLinkBtn").onclick = () => {
+    const url = `${location.origin}${location.pathname.replace("settings.html", "group.html")}?g=${gid}`;
+    copyToClipboard(url, "招待リンクをコピーしました");
+  };
+
+  // メンバー編集エリア
+  const memList = document.getElementById("settingsMemberList");
+  function loadMembers() {
+    memList.innerHTML = "";
+    getDocs(collection(groupRef, "members")).then(snap => {
+      snap.forEach(d => {
         const li = document.createElement("li");
-        li.textContent = "すでに精算済みです 🎉";
-        ulT.appendChild(li);
+        li.className = "member-item";
+        li.innerHTML = `
+          <input type="text" value="${d.data().name}" id="mem-${d.id}">
+          <button class="secondary small" onclick="updateMember('${d.id}')">更新</button>
+        `;
+        memList.appendChild(li);
+      });
+    });
+  }
+  loadMembers();
+
+  window.updateMember = async (mid) => {
+    const newName = document.getElementById(`mem-${mid}`).value.trim();
+    if (!newName) return showToast("名前を入力してください", "error");
+    await updateDoc(doc(groupRef, "members", mid), { name: newName });
+    showToast("メンバー名を更新しました");
+  };
+
+  document.getElementById("addNewMemberBtn").onclick = async () => {
+    const name = document.getElementById("addMemberInput").value.trim();
+    if (!name) return showToast("名前を入力してください", "error");
+    await setDoc(doc(groupRef, "members", generateId()), { name, createdAt: serverTimestamp() });
+    document.getElementById("addMemberInput").value = "";
+    loadMembers();
+    showToast("メンバーを追加しました");
+  };
+
+  // 通貨編集エリア
+  const currencyList = document.getElementById("currencyList");
+  
+  function renderCurrencies(currencies) {
+    currencyList.innerHTML = "";
+    Object.entries(currencies).forEach(([code, rate]) => {
+      const li = document.createElement("li");
+      li.className = "member-item"; // スタイル流用
+      if (code === 'JPY') {
+        li.innerHTML = `<span>🇯🇵 JPY (基準)</span><span>1.0</span>`;
       } else {
-        for (const t of transferList) {
-          const li = document.createElement("li");
-          const fromName = members[t.from] || "(不明)";
-          const toName = members[t.to] || "(不明)";
-          li.textContent = `${fromName} → ${toName}：${t.amount}円`;
-          ulT.appendChild(li);
-        }
+        li.innerHTML = `
+          <span>${code}</span>
+          <div style="display:flex; gap:4px; align-items:center;">
+            1 ${code} = <input type="number" value="${rate}" style="width:70px; margin:0;" id="rate-${code}"> 円
+            <button class="secondary small" onclick="updateRate('${code}')">変更</button>
+          </div>
+        `;
       }
-      transfersEl.appendChild(ulT);
-
-      // LINE用テキスト
-      copyForLineBtn.onclick = () => {
-        let text = `【割り勘結果】\n\n`;
-        text += `▼各自の残高\n`;
-        for (const id in net) {
-          const yen = Math.round(net[id]);
-          const name = members[id] || "(不明)";
-          if (yen > 0) text += `${name}：+${yen}円（受け取り）\n`;
-          else if (yen < 0) text += `${name}：${yen}円（支払い）\n`;
-          else text += `${name}：0円\n`;
-        }
-        text += `\n▼支払い組み合わせ\n`;
-        if (transferList.length === 0) {
-          text += `精算はすでに完了しています 🎉\n`;
-        } else {
-          for (const t of transferList) {
-            const fromName = members[t.from] || "(不明)";
-            const toName = members[t.to] || "(不明)";
-            text += `${fromName} → ${toName}：${t.amount}円\n`;
-          }
-        }
-
-        if (navigator.clipboard) {
-          navigator.clipboard
-            .writeText(text)
-            .then(() => showToast("コピーしました！LINEに貼り付けてね"))
-            .catch(() => showToast("コピーに失敗しました"));
-        } else {
-          showToast("クリップボードコピーに非対応のブラウザです");
-        }
-      };
+      currencyList.appendChild(li);
     });
   }
-}
 
-/* ========== edit.html（支出編集） ========== */
+  window.updateRate = async (code) => {
+    const newRate = parseFloat(document.getElementById(`rate-${code}`).value);
+    if (!newRate || newRate <= 0) return showToast("正しいレートを入力してください", "error");
+    
+    // Firestoreから最新を取得して更新
+    const snap = await getDoc(groupRef);
+    const curs = snap.data().currencies;
+    curs[code] = newRate;
+    await updateDoc(groupRef, { currencies: curs });
+    showToast(`${code}のレートを更新しました`);
+    renderCurrencies(curs);
+  };
 
-const saveEditBtn = document.getElementById("saveEditBtn");
-if (saveEditBtn) {
-  const params = new URLSearchParams(location.search);
-  const groupId = params.get("g");
-  const expenseId = params.get("e");
-  const backBtn = document.getElementById("backToGroupBtn");
-  const deleteExpenseBtn = document.getElementById("deleteExpenseBtn");
+  document.getElementById("addCurrencyBtn").onclick = async () => {
+    const code = document.getElementById("newCurrencyCode").value.trim().toUpperCase();
+    const rate = parseFloat(document.getElementById("newCurrencyRate").value);
+    if (!code || !rate) return showToast("通貨コードとレートを入力してください", "error");
+    if (code === 'JPY') return showToast("JPYは基準通貨です", "error");
 
-  if (backBtn && groupId) {
-    backBtn.onclick = () => {
-      location.href = `group.html?g=${groupId}`;
-    };
-  }
-
-  if (!groupId || !expenseId) {
-    showToast("URL が不正です");
-  } else {
-    const groupRef = doc(db, "groups", groupId);
-    const expenseRef = doc(groupRef, "expenses", expenseId);
-
-    const titleInput = document.getElementById("editExpenseTitle");
-    const amountInput = document.getElementById("editExpenseAmount");
-    const categorySelect = document.getElementById("editCategorySelect");
-    const payerSelect = document.getElementById("editPayerSelect");
-    const participantBox = document.getElementById("editParticipantCheckboxes");
-
-    // カテゴリ選択肢（編集画面用）
-    const CATEGORY_OPTIONS = [
-      { value: "food", label: "🍚 飲食" },
-      { value: "transport", label: "🚗 交通" },
-      { value: "lodging", label: "🏨 宿泊" },
-      { value: "activity", label: "🎡 アクティビティ" },
-      { value: "other", label: "💰 その他" },
-    ];
-
-    // カテゴリのセレクトボックスに option を流し込む
-    if (categorySelect) {
-      categorySelect.innerHTML = "";
-      CATEGORY_OPTIONS.forEach((c) => {
-        const opt = document.createElement("option");
-        opt.value = c.value;
-        opt.textContent = c.label;
-        categorySelect.appendChild(opt);
-      });
-    }
-
-    // メンバー一覧取得
-    (async () => {
-      const memberSnap = await getDocs(collection(groupRef, "members"));
-      memberSnap.forEach((m) => {
-        const id = m.id;
-        const name = m.data().name;
-
-        // 支払い者 select
-        const opt = document.createElement("option");
-        opt.value = id;
-        opt.textContent = name;
-        payerSelect.appendChild(opt);
-
-        // 参加者チェックボックス
-        const label = document.createElement("label");
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.value = id;
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(name));
-        participantBox.appendChild(label);
-      });
-
-      // 既存支出読み込み
-      const snap = await getDoc(expenseRef);
-      if (!snap.exists()) {
-        showToast("支出が見つかりません");
-        return;
-      }
-      const data = snap.data();
-      titleInput.value = data.title || "";
-      amountInput.value = data.amount || "";
-      categorySelect.value = data.category || "other";
-      payerSelect.value = data.payerId;
-
-      const participants = new Set(data.participantIds || []);
-      participantBox.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-        if (participants.has(cb.value)) cb.checked = true;
-      });
-    })();
-
-    // 保存
-    saveEditBtn.onclick = async () => {
-      const title = titleInput.value.trim() || "支出";
-      const amount = Number(amountInput.value);
-      const category =
-        categorySelect && categorySelect.value ? categorySelect.value : "other";
-      const payerId = payerSelect.value;
-
-      const participantIds = Array.from(
-        participantBox.querySelectorAll("input[type=checkbox]:checked")
-      ).map((cb) => cb.value);
-
-      // 金額のバリデーション
-      if (!amount || isNaN(amount)) {
-        showToast("金額を入力してね");
-        return;
-      }
-      if (amount <= 0) {
-        showToast("金額は1円以上にしてね");
-        return;
-      }
-      if (amount < 0 || amount > 10000000) {
-        showToast("金額は1円以上1,000万円以下で入力してね");
-        return;
-      }
-      if (!payerId) {
-        showToast("支払った人を選んでね");
-        return;
-      }
-      if (participantIds.length === 0) {
-        showToast("少なくとも1人は選んでね");
-        return;
-      }
-
-      await updateDoc(expenseRef, {
-        title,
-        amount,
-        category,
-        payerId,
-        participantIds,
-      });
-
-      showToast("更新しました！");
-      location.href = `group.html?g=${groupId}`;
-    };
-
-    // 削除ボタンのロジック
-    if (deleteExpenseBtn) {
-      deleteExpenseBtn.onclick = async () => {
-        // 確認ダイアログ
-        if (!confirm("本当にこの支出を削除しますか？\n（取り消せません）")) {
-          return;
-        }
-        try {
-          await deleteDoc(expenseRef);
-          showToast("支出を削除しました");
-          location.href = `group.html?g=${groupId}`;
-        } catch (err) {
-          console.error(err);
-          showToast("削除に失敗しました");
-        }
-      };
-    }
-  }
-}
-
-/* ========== members.html（参加者管理） ========== */
-
-const addMemberBtn = document.getElementById("addMemberBtn");
-if (addMemberBtn) {
-  const groupId = getGroupIdFromQuery();
-  const groupTitleEl = document.getElementById("groupTitle");
-  const backToGroupBtn = document.getElementById("backToGroupBtn");
-
-  if (!groupId) {
-    if (groupTitleEl) groupTitleEl.textContent = "グループIDがありません";
-  } else {
-    const groupRef = doc(db, "groups", groupId);
-    const membersRef = collection(groupRef, "members");
-
-    (async () => {
-      const snap = await getDoc(groupRef);
-      if (snap.exists() && groupTitleEl) {
-        groupTitleEl.textContent = `${snap.data().name} の参加者`;
-      }
-    })();
-
-    if (backToGroupBtn) {
-      backToGroupBtn.onclick = () => {
-        location.href = `group.html?g=${groupId}`;
-      };
-    }
-
-    const memberListEl = document.getElementById("memberList");
-    const newMemberNameInput = document.getElementById("newMemberName");
-
-    // メンバー追加
-    addMemberBtn.addEventListener("click", async () => {
-      const name = newMemberNameInput.value.trim();
-      if (!name) {
-        showToast("名前を入力してね");
-        return;
-      }
-      const memberId = generateId();
-      await setDoc(doc(membersRef, memberId), {
-        name,
-        createdAt: serverTimestamp(),
-      });
-      newMemberNameInput.value = "";
-    });
-
-    // メンバー一覧 + 削除
-    if (memberListEl) {
-      onSnapshot(membersRef, (snap) => {
-        memberListEl.innerHTML = "";
-        snap.forEach((docSnap) => {
-          const m = { id: docSnap.id, ...docSnap.data() };
-
-          const li = document.createElement("li");
-          li.className = "member-item";
-
-          const nameSpan = document.createElement("span");
-          nameSpan.textContent = m.name;
-
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "削除";
-          delBtn.className = "secondary small";
-          delBtn.onclick = async () => {
-            if (!confirm(`${m.name} を削除しますか？`)) return;
-            await deleteDoc(doc(membersRef, m.id));
-          };
-
-          li.appendChild(nameSpan);
-          li.appendChild(delBtn);
-          memberListEl.appendChild(li);
-        });
-      });
-    }
-  }
+    const snap = await getDoc(groupRef);
+    const curs = snap.data().currencies || {};
+    curs[code] = rate;
+    await updateDoc(groupRef, { currencies: curs });
+    
+    document.getElementById("newCurrencyCode").value = "";
+    document.getElementById("newCurrencyRate").value = "";
+    showToast("通貨を追加しました");
+    renderCurrencies(curs);
+  };
 }

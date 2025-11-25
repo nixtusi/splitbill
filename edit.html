@@ -2,46 +2,45 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>SplitBill - 支出の編集</title>
+  <title>編集 - Team Pay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="edit">
+  <header class="fixed-header">
+    <a href="index.html" class="header-left">Team Pay</a>
+    <div class="header-center">支出を編集</div>
+    <div class="header-right"></div>
+  </header>
+
   <main class="container">
-    <div class="top-bar">
-      <div class="brand">
-        <a href="index.html" style="display: block;">
-          <!-- <img src="logocut.jpg" alt="Splitly" class="logo" /> -->
-        </a>
-        <div>
-          <a href="index.html" class="brand-link">
-            <div class="brand-title">Team Pay</div>
-          </a>
-        </div>
-      </div>
-      <h1 id="editTitle">支出の編集</h1>
-    </div>
     <section>
-      <input id="editExpenseTitle" type="text" placeholder="タイトル">
-      <input id="editExpenseAmount" type="number" inputmode="numeric" placeholder="金額（円）">
+      <label class="muted">日付</label>
+      <input id="expenseDate" type="date">
 
-      <label>カテゴリ</label>
-      <select id="editCategorySelect">
-        <option value="food">🍚 飲食</option>
-        <option value="transport">🚗 交通</option>
-        <option value="lodging">🏨 宿泊</option>
-        <option value="activity">🎡 アクティビティ</option>
-        <option value="other">💰 その他</option>
-      </select>
+      <label class="muted">タイトル</label>
+      <input id="editExpenseTitle" type="text">
 
-      <label>支払った人</label>
+      <label class="muted">金額と通貨</label>
+      <div style="display:flex; gap:8px;">
+        <input id="editExpenseAmount" type="number" inputmode="numeric" style="flex:2;">
+        <select id="currencySelect" style="flex:1;"></select>
+      </div>
+
+      <label class="muted">カテゴリ</label>
+      <select id="editCategorySelect"></select>
+
+      <label class="muted">誰が払った？</label>
       <select id="editPayerSelect"></select>
 
-      <label style="margin-top: 20px;">誰の分？</label>
-      <div id="editParticipantCheckboxes"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+        <label class="muted" style="margin:0;">誰の分？</label>
+        <button type="button" id="selectAllBtn" class="secondary" style="padding:4px 10px; font-size:12px;">全員選択/解除</button>
+      </div>
+      <div id="editParticipantCheckboxes" class="chip-container"></div>
 
       <button id="saveEditBtn" class="full">更新する</button>
-      <div style="margin-top: 16px;">
+      <div style="margin-top:16px;">
         <button id="deleteExpenseBtn" class="secondary full danger">この支出を削除</button>
       </div>
     </section>
@@ -50,7 +49,6 @@
       <button id="backToGroupBtn" class="secondary full">戻る</button>
     </div>
   </main>
-
   <script type="module" src="firebase-config.js"></script>
   <script type="module" src="app.js"></script>
 </body>

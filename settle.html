@@ -2,45 +2,38 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>SplitBill - 精算</title>
+  <title>精算 - Team Pay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="settle">
+  <header class="fixed-header">
+    <a href="index.html" class="header-left">Team Pay</a>
+    <div class="header-center">精算</div>
+    <div class="header-right"></div>
+  </header>
+
   <main class="container">
-    <div class="brand">
-      <a href="index.html" style="display: block;">
-        <!-- <img src="logocut.jpg" alt="Splitly" class="logo" /> -->
-      </a>
-      <div>
-        <a href="index.html" class="brand-link">
-          <div class="brand-title">Team Pay</div>
-        </a>
-      </div>
-    </div>
-    <div class="top-bar">
-      <h1 id="groupTitle">精算</h1>
+    <div class="tab-container">
+      <button id="tabPayment" class="tab-btn active">支払い</button>
+      <button id="tabSpending" class="tab-btn">支出</button>
     </div>
 
-    <section>
-      <h2>各自の残高</h2>
-      <div id="balances"></div>
-    </section>
-
-    <section>
-      <h2>支払うべき組み合わせ</h2>
+    <div id="sectionPayment">
+      <p class="muted" style="margin-bottom:10px;">誰が誰に支払うべきかの計算結果です。</p>
       <div id="transfers"></div>
-    </section>
+      <button id="copyForLineBtn" class="full" style="margin-top:20px;">テキストをコピー</button>
+    </div>
 
-    <section>
-      <button id="copyForLineBtn" class="full">共有用テキストをコピー</button>
-    </section>
+    <div id="sectionSpending" style="display:none;">
+      <p class="muted" style="margin-bottom:10px;">各自がこのイベントで消費した総額です。</p>
+      <ul id="spendingList"></ul>
+    </div>
 
     <div class="bottom-actions single">
-      <button id="backToGroupBtn" class="secondary full">支出一覧に戻る</button>
+      <button id="backToGroupBtn" class="secondary full">戻る</button>
     </div>
   </main>
-
   <script type="module" src="firebase-config.js"></script>
   <script type="module" src="app.js"></script>
 </body>
